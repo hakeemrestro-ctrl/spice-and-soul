@@ -769,7 +769,8 @@ function TipsBox({ tips }: { tips: string[] }) {
 function HeroImage({ url }: { url: string | null }) {
   const transformed = pdfImageUrl(url, 1000, 480);
   if (transformed) {
-    return <Image src={transformed} style={s.heroImage} alt="" />;
+    // eslint-disable-next-line jsx-a11y/alt-text
+    return <Image src={transformed} style={s.heroImage} />;
   }
   return (
     <View style={s.heroFallback}>
