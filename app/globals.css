@@ -1,0 +1,245 @@
+@import "tailwindcss";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  /* shadcn semantic tokens — mapped to brand */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Brand palette utilities — bg-saffron-400, text-clove-700, etc. */
+  --color-saffron-50:  #fff8eb;
+  --color-saffron-100: #ffeac2;
+  --color-saffron-200: #fdd482;
+  --color-saffron-300: #f9b94a;
+  --color-saffron-400: #f29b1f;
+  --color-saffron-500: #d97f08;
+  --color-saffron-600: #ad5f04;
+  --color-saffron-700: #864806;
+
+  --color-paprika-50:  #fdf3ee;
+  --color-paprika-200: #f3b89e;
+  --color-paprika-400: #d65a2c;
+  --color-paprika-600: #a13818;
+  --color-paprika-700: #7d2a11;
+
+  --color-cardamom-100: #e8eedc;
+  --color-cardamom-400: #6d8550;
+  --color-cardamom-600: #4a5c36;
+
+  --color-clove-50:  #faf6f1;
+  --color-clove-100: #f1e8db;
+  --color-clove-200: #ddc9af;
+  --color-clove-300: #b89977;
+  --color-clove-400: #8c6b48;
+  --color-clove-500: #5c4327;
+  --color-clove-600: #3e2c19;
+  --color-clove-700: #281a0d;
+  --color-clove-900: #14100a;
+
+  --color-cream-0:   #ffffff;
+  --color-cream-50:  #fdfaf3;
+  --color-cream-100: #f8f1e3;
+  --color-cream-200: #efe4ce;
+
+  /* Type families */
+  --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --font-display: var(--font-display), "Cormorant Garamond", Georgia, serif;
+  --font-heading: var(--font-display), "Cormorant Garamond", Georgia, serif;
+
+  /* Warm-tinted shadows */
+  --shadow-warm-xs: 0 1px 2px rgba(62, 44, 25, 0.06);
+  --shadow-warm-sm: 0 1px 3px rgba(62, 44, 25, 0.08), 0 1px 2px rgba(62, 44, 25, 0.04);
+  --shadow-warm-md: 0 4px 12px rgba(62, 44, 25, 0.08), 0 2px 4px rgba(62, 44, 25, 0.04);
+  --shadow-warm-lg: 0 12px 32px rgba(62, 44, 25, 0.10), 0 4px 8px rgba(62, 44, 25, 0.05);
+  --shadow-glow: 0 0 0 4px rgba(242, 155, 31, 0.20);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 140ms;
+  --dur-base: 220ms;
+  --dur-slow: 420ms;
+
+  /* Radius scale (matches design's 12px md as shadcn lg) */
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  /* Brand → shadcn semantic mapping */
+  --background: #fdfaf3;          /* cream-50 */
+  --foreground: #3e2c19;          /* clove-600 */
+  --card: #ffffff;                /* cream-0 */
+  --card-foreground: #3e2c19;     /* clove-600 */
+  --popover: #ffffff;
+  --popover-foreground: #3e2c19;
+  --primary: #f29b1f;             /* saffron-400 */
+  --primary-foreground: #14100a;  /* clove-900 */
+  --secondary: #f8f1e3;           /* cream-100 */
+  --secondary-foreground: #281a0d;/* clove-700 */
+  --muted: #f8f1e3;               /* cream-100 */
+  --muted-foreground: #5c4327;    /* clove-500 */
+  --accent: #d65a2c;              /* paprika-400 */
+  --accent-foreground: #fdfaf3;   /* cream-50 */
+  --destructive: #a13818;         /* paprika-600 */
+  --border: #efe4ce;              /* cream-200 */
+  --input: #ddc9af;               /* clove-200 */
+  --ring: #f29b1f;                /* saffron-400 */
+  --chart-1: #f29b1f;
+  --chart-2: #d65a2c;
+  --chart-3: #6d8550;
+  --chart-4: #5c4327;
+  --chart-5: #281a0d;
+  --radius: 0.75rem;              /* 12px */
+  --sidebar: #fdfaf3;
+  --sidebar-foreground: #281a0d;
+  --sidebar-primary: #ffeac2;     /* saffron-100 */
+  --sidebar-primary-foreground: #281a0d;
+  --sidebar-accent: #ffeac2;
+  --sidebar-accent-foreground: #281a0d;
+  --sidebar-border: #efe4ce;
+  --sidebar-ring: #f29b1f;
+}
+
+.dark {
+  /* Unused — paper-light only design. Kept harmless. */
+  --background: #14100a;
+  --foreground: #fdfaf3;
+  --card: #281a0d;
+  --card-foreground: #fdfaf3;
+  --popover: #281a0d;
+  --popover-foreground: #fdfaf3;
+  --primary: #f29b1f;
+  --primary-foreground: #14100a;
+  --secondary: #3e2c19;
+  --secondary-foreground: #fdfaf3;
+  --muted: #3e2c19;
+  --muted-foreground: #b89977;
+  --accent: #d65a2c;
+  --accent-foreground: #fdfaf3;
+  --destructive: #d65a2c;
+  --border: rgba(255, 255, 255, 0.10);
+  --input: rgba(255, 255, 255, 0.15);
+  --ring: #f29b1f;
+  --sidebar: #281a0d;
+  --sidebar-foreground: #fdfaf3;
+  --sidebar-primary: #f29b1f;
+  --sidebar-primary-foreground: #14100a;
+  --sidebar-accent: #3e2c19;
+  --sidebar-accent-foreground: #fdfaf3;
+  --sidebar-border: rgba(255, 255, 255, 0.10);
+  --sidebar-ring: #f29b1f;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+@layer utilities {
+  /* Entrance animations — always use motion-safe: prefix at use-site */
+  .animate-fade-in {
+    animation: fade-in 0.65s var(--ease-out) both;
+  }
+  .animate-slide-up {
+    animation: slide-up 0.65s var(--ease-out) both;
+  }
+  .delay-75  { animation-delay:  75ms; }
+  .delay-150 { animation-delay: 150ms; }
+  .delay-225 { animation-delay: 225ms; }
+  .delay-300 { animation-delay: 300ms; }
+  .delay-375 { animation-delay: 375ms; }
+  .delay-450 { animation-delay: 450ms; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+@layer components {
+  .eyebrow {
+    @apply font-sans text-xs font-semibold uppercase tracking-[0.18em] text-saffron-500;
+  }
+  .lead {
+    @apply font-display italic text-xl leading-snug text-clove-500;
+  }
+  .h-display {
+    @apply font-display text-5xl leading-tight tracking-tight text-clove-900;
+  }
+
+  /* Blog post body typography */
+  .prose-spice p {
+    @apply mb-5 font-sans text-[16px] leading-relaxed text-clove-600;
+  }
+  .prose-spice h2 {
+    @apply mb-3 mt-10 font-display text-2xl text-clove-700;
+  }
+  .prose-spice h3 {
+    @apply mb-2 mt-7 font-display text-xl text-clove-700;
+  }
+  .prose-spice strong {
+    @apply font-semibold text-clove-700;
+  }
+  .prose-spice ul {
+    @apply mb-5 list-disc pl-5;
+  }
+  .prose-spice ol {
+    @apply mb-5 list-decimal pl-5;
+  }
+  .prose-spice li {
+    @apply mb-1.5 font-sans text-[15px] text-clove-600;
+  }
+  .prose-spice blockquote {
+    @apply my-6 border-l-4 border-saffron-300 pl-5 font-display italic text-clove-500;
+  }
+}
