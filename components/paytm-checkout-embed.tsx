@@ -60,6 +60,7 @@ export default function PaytmCheckoutEmbed({
   onCancel,
 }: Props) {
   const [error, setError] = useState<string | null>(null);
+  const [cancelled, setCancelled] = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
   const invokedRef = useRef(false);
 
@@ -85,13 +86,37 @@ export default function PaytmCheckoutEmbed({
       },
       handler: {
         notifyMerchant: (event: string, data: unknown) => {
-          if (event === "APP_CLOSED") {
-            onCancel?.();
-          }
           console.info("[paytm:checkout] notifyMerchant", { event, data });
+          // APP_CLOSED = user clicked X / closed modal without paying
+          if (event === "APP_CLOSED") {
+            setCancelled(true);
+            onCancel?.();
+            return;
+          }
+          // SESSION_EXPIRED = 15-min token timeout
+          if (event === "SESSION_EXPIRED") {
+            setError("Payment session expired. Start checkout again.");
+            return;
+          }
+          // Treat all *_ERROR events as failure modes
+          if (event.endsWith("_ERROR")) {
+            setError(`Paytm error: ${event}`);
+          }
         },
         transactionStatus: (data: unknown) => {
           console.info("[paytm:checkout] transactionStatus", data);
+          // V2 SDK with redirect:false keeps user in-page after pay. Navigate
+          // explicitly on terminal states. /thank-you reads stripe_payment_intent_id
+          // column (kept for ID stability) populated with Paytm TXNID by the
+          // server-side callback.
+          const d = (data ?? {}) as { STATUS?: string; TXNID?: string; RESPMSG?: string };
+          if (d.STATUS === "TXN_SUCCESS" && d.TXNID) {
+            window.location.assign(`/thank-you?payment_intent=${encodeURIComponent(d.TXNID)}`);
+            return;
+          }
+          if (d.STATUS === "TXN_FAILURE") {
+            setError(`Payment failed: ${d.RESPMSG ?? "transaction declined"}`);
+          }
         },
       },
     };
@@ -135,21 +160,51 @@ export default function PaytmCheckoutEmbed({
         onError={() => setError("Failed to load Paytm SDK script.")}
       />
       <div id="paytm-checkout-root" />
-      {!error ? (
+      {error ? (
+        <div className="flex items-start gap-3 rounded-xl bg-paprika-50 p-4 font-sans text-sm text-paprika-700">
+          <AlertTriangle className="mt-0.5 size-5 shrink-0" aria-hidden />
+          <div className="flex-1">
+            <p className="mb-1 font-medium">Payment couldn&apos;t complete</p>
+            <p>{error}</p>
+            <p className="mt-2 text-xs text-paprika-500">Order: {orderId.slice(0, 16)}…</p>
+            <button
+              type="button"
+              onClick={() => {
+                setError(null);
+                setCancelled(false);
+                onCancel?.();
+              }}
+              className="mt-3 inline-flex items-center justify-center rounded-lg bg-paprika-600 px-4 py-2 text-sm font-medium text-white hover:bg-paprika-700"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      ) : cancelled ? (
+        <div className="flex items-start gap-3 rounded-xl bg-cream-100 p-4 font-sans text-sm text-clove-700">
+          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-saffron-500" aria-hidden />
+          <div className="flex-1">
+            <p className="mb-1 font-medium">Payment cancelled</p>
+            <p className="text-clove-500">You closed the Paytm window. No charge was made.</p>
+            <p className="mt-2 text-xs text-clove-400">Order: {orderId.slice(0, 16)}…</p>
+            <button
+              type="button"
+              onClick={() => {
+                setCancelled(false);
+                onCancel?.();
+              }}
+              className="mt-3 inline-flex items-center justify-center rounded-lg bg-clove-700 px-4 py-2 text-sm font-medium text-white hover:bg-clove-800"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      ) : (
         <div className="flex items-center gap-3 font-sans text-sm text-clove-500">
           <Loader2 className="size-5 animate-spin text-saffron-500" aria-hidden />
           {scriptReady
             ? `Opening Paytm to pay ₹${amount}…`
             : `Loading Paytm Checkout…`}
-        </div>
-      ) : (
-        <div className="flex items-start gap-3 rounded-xl bg-paprika-50 p-4 font-sans text-sm text-paprika-700">
-          <AlertTriangle className="mt-0.5 size-5 shrink-0" aria-hidden />
-          <div>
-            <p className="mb-1 font-medium">Payment couldn&apos;t start</p>
-            <p>{error}</p>
-            <p className="mt-2 text-xs text-paprika-500">Order: {orderId.slice(0, 16)}…</p>
-          </div>
         </div>
       )}
     </div>

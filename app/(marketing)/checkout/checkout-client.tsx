@@ -136,6 +136,7 @@ export default function CheckoutPageClient({ course }: { course: Course }) {
               amount={paytmConfig.amount}
               txnToken={paytmConfig.txnToken}
               host={paytmConfig.host}
+              onCancel={() => setPaytmConfig(null)}
             />
           )}
         </div>
