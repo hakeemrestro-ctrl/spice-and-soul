@@ -116,10 +116,6 @@ export async function GET() {
   <p id="status">Loading Paytm SDK…</p>
   <pre id="log"></pre>
 
-  <script type="application/javascript"
-          src="${scriptSrc}"
-          crossorigin="anonymous"
-          onload="onScriptLoad()"></script>
   <script>
     var logEl = document.getElementById("log");
     var statusEl = document.getElementById("status");
@@ -169,6 +165,12 @@ export async function GET() {
       });
     }
   </script>
+
+  <script type="application/javascript"
+          src="${scriptSrc}"
+          crossorigin="anonymous"
+          onload="onScriptLoad()"
+          onerror="setStatus('SDK script failed to load (network or 4xx)', false)"></script>
 </body>
 </html>`;
 
