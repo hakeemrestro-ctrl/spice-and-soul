@@ -1,61 +1,125 @@
 "use client";
 
 /**
- * Paytm legacy form-redirect embed.
+ * Paytm V2 All-in-One JS Checkout embed.
  *
- * Server returns `{ action, fields }` where `action` is Paytm's
- * `/order/process` URL and `fields` is the signed hidden-input payload.
+ * Loads Paytm's hosted JS SDK from
+ *   https://{host}/merchantpgpui/checkoutjs/merchants/{MID}.js
+ * configures it with the server-issued txnToken, and opens the payment modal.
  *
- * Renders an invisible <form> + auto-submits on mount. Browser POSTs to
- * Paytm-hosted payment page; Paytm POSTs back to /api/paytm/callback when
- * done.
- *
- * Used while V2 All-in-One API access is being provisioned on the MID. Once
- * V2 is live, switch to txnToken + JS SDK flow.
+ * Host pattern (Paytm Payments Services Ltd accounts):
+ *   production → secure.paytmpayments.com
+ *   staging    → securestage.paytmpayments.com
  */
 import { useEffect, useRef, useState } from "react";
+import Script from "next/script";
 import { Loader2, AlertTriangle } from "lucide-react";
 
 type Props = {
   orderId: string;
+  mid: string;
   amount: string;
-  action: string;
-  fields: Record<string, string>;
+  txnToken: string;
+  host: string; // e.g. "secure.paytmpayments.com"
+  onCancel?: () => void;
 };
 
-export default function PaytmCheckoutEmbed({ orderId, amount, action, fields }: Props) {
-  const formRef = useRef<HTMLFormElement | null>(null);
-  const submittedRef = useRef(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+type PaytmCheckoutJS = {
+  init: (config: {
+    root: string;
+    flow: string;
+    data: {
+      orderId: string;
+      token: string;
+      tokenType: string;
+      amount: string;
+    };
+    merchant: { mid: string; redirect: boolean };
+    handler: {
+      notifyMerchant: (event: string, data: unknown) => void;
+      transactionStatus?: (data: unknown) => void;
+    };
+  }) => Promise<void>;
+  invoke: () => void;
+};
 
-  const propsError =
-    !action || !fields || Object.keys(fields).length === 0
-      ? "Payment session is missing details. Please refresh."
-      : null;
-  const error = propsError ?? submitError;
+declare global {
+  interface Window {
+    Paytm?: { CheckoutJS?: PaytmCheckoutJS };
+  }
+}
+
+export default function PaytmCheckoutEmbed({
+  orderId,
+  mid,
+  amount,
+  txnToken,
+  host,
+  onCancel,
+}: Props) {
+  const [error, setError] = useState<string | null>(null);
+  const [scriptReady, setScriptReady] = useState(false);
+  const invokedRef = useRef(false);
+
+  const scriptSrc = `https://${host}/merchantpgpui/checkoutjs/merchants/${encodeURIComponent(mid)}.js`;
 
   useEffect(() => {
-    if (submittedRef.current) return;
-    if (propsError) return;
-    if (!formRef.current) return;
-    submittedRef.current = true;
-    const t = setTimeout(() => {
-      try {
-        formRef.current?.submit();
-      } catch (err) {
-        console.error("Paytm form submit error:", err);
-        setSubmitError("Could not redirect to Paytm. Please refresh and try again.");
-      }
-    }, 200);
-    return () => clearTimeout(t);
-  }, [propsError, action, fields]);
+    if (!scriptReady || invokedRef.current) return;
+    if (typeof window === "undefined") return;
+    const Paytm = window.Paytm?.CheckoutJS;
+    if (!Paytm) {
+      setError("Paytm SDK did not load. Please refresh and try again.");
+      return;
+    }
+
+    invokedRef.current = true;
+    const config = {
+      root: "",
+      flow: "DEFAULT",
+      data: {
+        orderId,
+        token: txnToken,
+        tokenType: "TXN_TOKEN",
+        amount,
+      },
+      merchant: { mid, redirect: false },
+      handler: {
+        notifyMerchant: (event: string, data: unknown) => {
+          if (event === "APP_CLOSED") {
+            onCancel?.();
+          }
+          console.info("[paytm:checkout] notifyMerchant", { event, data });
+        },
+        transactionStatus: (data: unknown) => {
+          console.info("[paytm:checkout] transactionStatus", data);
+        },
+      },
+    };
+
+    Paytm.init(config)
+      .then(() => Paytm.invoke())
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("[paytm:checkout] init/invoke failed", msg);
+        setError(`Could not start Paytm checkout: ${msg}`);
+      });
+  }, [scriptReady, orderId, mid, amount, txnToken, onCancel]);
 
   return (
     <div className="rounded-2xl border border-cream-200 bg-cream-50 p-6">
+      <Script
+        src={scriptSrc}
+        strategy="afterInteractive"
+        onLoad={() => setScriptReady(true)}
+        onError={() => setError("Failed to load Paytm SDK script.")}
+      />
+      <div id="paytm-checkout-root" />
       {!error ? (
         <div className="flex items-center gap-3 font-sans text-sm text-clove-500">
           <Loader2 className="size-5 animate-spin text-saffron-500" aria-hidden />
-          Redirecting to Paytm to pay ₹{amount} · Order {orderId.slice(0, 16)}…
+          {scriptReady
+            ? `Opening Paytm to pay ₹${amount}…`
+            : `Loading Paytm Checkout…`}
         </div>
       ) : (
         <div className="flex items-start gap-3 rounded-xl bg-paprika-50 p-4 font-sans text-sm text-paprika-700">
@@ -63,21 +127,10 @@ export default function PaytmCheckoutEmbed({ orderId, amount, action, fields }: 
           <div>
             <p className="mb-1 font-medium">Payment couldn&apos;t start</p>
             <p>{error}</p>
+            <p className="mt-2 text-xs text-paprika-500">Order: {orderId.slice(0, 16)}…</p>
           </div>
         </div>
       )}
-
-      <form
-        ref={formRef}
-        method="POST"
-        action={action}
-        style={{ display: "none" }}
-        aria-hidden="true"
-      >
-        {Object.entries(fields).map(([k, v]) => (
-          <input key={k} type="hidden" name={k} value={v} />
-        ))}
-      </form>
     </div>
   );
 }

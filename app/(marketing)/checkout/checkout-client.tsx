@@ -37,8 +37,8 @@ type PaytmConfig = {
   orderId: string;
   mid: string;
   amount: string;
-  action: string;
-  fields: Record<string, string>;
+  txnToken: string;
+  host: string;
 };
 
 export default function CheckoutPageClient({ course }: { course: Course }) {
@@ -74,18 +74,19 @@ export default function CheckoutPageClient({ course }: { course: Course }) {
       }),
     });
     const data = await res.json();
-    if (data.orderId && data.action && data.fields && data.amount) {
+    if (data.orderId && data.txnToken && data.host && data.mid && data.amount) {
       setContactInfo({ email, name });
       setPaytmConfig({
         orderId: data.orderId,
         mid: data.mid,
         amount: data.amount,
-        action: data.action,
-        fields: data.fields,
+        txnToken: data.txnToken,
+        host: data.host,
       });
       trackEvent("checkout_started", { course: course.title });
     } else {
-      throw new Error(data.error ?? "Checkout failed");
+      const paytmErr = data.paytm?.resultMsg ? ` (${data.paytm.resultMsg})` : "";
+      throw new Error((data.error ?? "Checkout failed") + paytmErr);
     }
   };
 
@@ -131,9 +132,10 @@ export default function CheckoutPageClient({ course }: { course: Course }) {
           ) : (
             <PaytmCheckoutEmbed
               orderId={paytmConfig.orderId}
+              mid={paytmConfig.mid}
               amount={paytmConfig.amount}
-              action={paytmConfig.action}
-              fields={paytmConfig.fields}
+              txnToken={paytmConfig.txnToken}
+              host={paytmConfig.host}
             />
           )}
         </div>

@@ -1,17 +1,18 @@
 /**
  * POST /api/paytm/initiate
  *
- * Legacy form-redirect — server step 1.
+ * V2 All-in-One Checkout — server step 1.
  *
- * 1. Audit Paytm config (throws if env var undefined/empty)
+ * 1. Audit Paytm config (throws if PAYTM_MID / PAYTM_MERCHANT_KEY undefined/empty)
  * 2. Validate input (courseId, email, name, optional couponCode + UTM)
  * 3. Apply coupon → compute final amount
- * 4. Persist a `pending_orders` row keyed by our generated orderId
- * 5. Build signed legacy form payload via buildLegacyForm
- * 6. Return `{ orderId, mid, amount, action, fields }` to the client
+ * 4. Persist `pending_orders` row keyed by our generated orderId
+ * 5. Build V2 payload (stringified body + signature wrapped as { head, body })
+ * 6. POST server-to-server to `/theia/api/v1/initiateTransaction`
+ * 7. Extract `txnToken` from Paytm response, return to client
  *
- * The client auto-submits the form to Paytm's hosted page. Paytm POSTs back
- * to /api/paytm/callback on completion.
+ * Client uses txnToken with Paytm's All-in-One JS SDK to open payment modal.
+ * Paytm POSTs back to /api/paytm/callback on completion.
  */
 export const dynamic = "force-dynamic";
 
@@ -22,17 +23,24 @@ import {
   PAYTM,
   generateOrderId,
   paiseToTxnAmount,
-  buildLegacyForm,
+  buildV2InitiatePayload,
   emailToCustId,
   auditPaytmConfig,
 } from "@/lib/paytm";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://hakeemrestro.shop";
 
+type PaytmInitiateResponse = {
+  head?: { responseTimestamp?: string; version?: string; signature?: string };
+  body?: {
+    resultInfo?: { resultStatus?: string; resultCode?: string; resultMsg?: string };
+    txnToken?: string;
+    isPromoCodeValid?: boolean;
+    authenticated?: boolean;
+  };
+};
+
 export async function POST(req: NextRequest) {
-  // STRICT: env audit fires first. Throws if PAYTM_MID / PAYTM_MERCHANT_KEY
-  // is undefined or empty. Surfaces non-PII config snapshot in vercel logs so
-  // misconfiguration is impossible to miss.
   try {
     console.info("[paytm:initiate] config audit", auditPaytmConfig());
   } catch (err) {
@@ -143,31 +151,80 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to create order" }, { status: 500 });
   }
 
-  // 4. Build legacy form payload
+  // 4. Build V2 payload
   const callbackUrl = `${APP_URL}/api/paytm/callback`;
-  let action: string;
-  let fields: Record<string, string>;
+  let built;
   try {
-    const built = await buildLegacyForm({
+    built = await buildV2InitiatePayload({
       orderId,
-      customerId: emailToCustId(email),
       amountRupees: paiseToTxnAmount(finalCents),
-      customerEmail: email,
+      custId: emailToCustId(email),
       callbackUrl,
+      email,
     });
-    action = built.action;
-    fields = built.fields;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[paytm:initiate] buildLegacyForm failed", { orderId, error: msg });
+    console.error("[paytm:initiate] buildV2InitiatePayload failed", {
+      orderId,
+      error: msg,
+    });
     return NextResponse.json({ error: "Failed to prepare payment" }, { status: 500 });
   }
+
+  // 5. POST server-to-server to Paytm
+  let paytmRes: Response;
+  let paytmJson: PaytmInitiateResponse;
+  try {
+    paytmRes = await fetch(built.url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(built.payload),
+    });
+    paytmJson = (await paytmRes.json()) as PaytmInitiateResponse;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[paytm:initiate] Paytm fetch failed", {
+      orderId,
+      url: built.url,
+      error: msg,
+    });
+    return NextResponse.json({ error: "Payment gateway unreachable" }, { status: 502 });
+  }
+
+  const resultStatus = paytmJson.body?.resultInfo?.resultStatus;
+  const resultCode = paytmJson.body?.resultInfo?.resultCode;
+  const resultMsg = paytmJson.body?.resultInfo?.resultMsg;
+  const txnToken = paytmJson.body?.txnToken;
+
+  if (!txnToken || resultStatus !== "S") {
+    console.error("[paytm:initiate] Paytm rejected initiate request", {
+      orderId,
+      httpStatus: paytmRes.status,
+      paytmResultStatus: resultStatus,
+      paytmResultCode: resultCode,
+      paytmResultMsg: resultMsg,
+      hasTxnToken: !!txnToken,
+    });
+    return NextResponse.json(
+      {
+        error: "Payment gateway rejected the request",
+        paytm: { resultCode, resultMsg },
+      },
+      { status: 502 },
+    );
+  }
+
+  console.info("[paytm:initiate] txnToken issued", {
+    orderId,
+    tokenLen: txnToken.length,
+  });
 
   return NextResponse.json({
     orderId,
     mid: PAYTM.mid,
     amount: paiseToTxnAmount(finalCents),
-    action,
-    fields,
+    txnToken,
+    callbackUrl,
+    host: PAYTM.host,
   });
 }

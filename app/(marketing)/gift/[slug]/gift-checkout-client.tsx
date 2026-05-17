@@ -13,8 +13,8 @@ type PaytmConfig = {
   orderId: string;
   mid: string;
   amount: string;
-  action: string;
-  fields: Record<string, string>;
+  txnToken: string;
+  host: string;
 };
 
 export function GiftCheckoutClient({ course }: { course: Course }) {
@@ -45,16 +45,17 @@ export function GiftCheckoutClient({ course }: { course: Course }) {
         }),
       });
       const data = await res.json();
-      if (data.orderId && data.action && data.fields && data.amount) {
+      if (data.orderId && data.txnToken && data.host && data.mid && data.amount) {
         setPaytmConfig({
           orderId: data.orderId,
           mid: data.mid,
           amount: data.amount,
-          action: data.action,
-          fields: data.fields,
+          txnToken: data.txnToken,
+          host: data.host,
         });
       } else {
-        setError(data.error ?? "Something went wrong");
+        const paytmErr = data.paytm?.resultMsg ? ` (${data.paytm.resultMsg})` : "";
+        setError((data.error ?? "Something went wrong") + paytmErr);
       }
     } catch {
       setError("Something went wrong. Please try again.");
@@ -72,9 +73,10 @@ export function GiftCheckoutClient({ course }: { course: Course }) {
         </p>
         <PaytmCheckoutEmbed
           orderId={paytmConfig.orderId}
+          mid={paytmConfig.mid}
           amount={paytmConfig.amount}
-          action={paytmConfig.action}
-          fields={paytmConfig.fields}
+          txnToken={paytmConfig.txnToken}
+          host={paytmConfig.host}
         />
       </div>
     );

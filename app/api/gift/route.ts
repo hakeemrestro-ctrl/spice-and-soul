@@ -7,19 +7,20 @@ import {
   PAYTM,
   generateOrderId,
   paiseToTxnAmount,
-  buildLegacyForm,
+  buildV2InitiatePayload,
   emailToCustId,
   auditPaytmConfig,
 } from "@/lib/paytm";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://hakeemrestro.shop";
 
-/**
- * Gift checkout — Paytm flow.
- *
- * Mirrors /api/paytm/initiate but accepts gift metadata that the callback uses
- * to fan out a recipient email + gift_orders row after successful payment.
- */
+type PaytmInitiateResponse = {
+  body?: {
+    resultInfo?: { resultStatus?: string; resultCode?: string; resultMsg?: string };
+    txnToken?: string;
+  };
+};
+
 const GiftCheckoutSchema = z.object({
   courseId: z.string().uuid(),
   senderEmail: z.string().email(),
@@ -94,29 +95,64 @@ export async function POST(req: NextRequest) {
   }
 
   const callbackUrl = `${APP_URL}/api/paytm/callback`;
-  let action: string;
-  let fields: Record<string, string>;
+  let built;
   try {
-    const built = await buildLegacyForm({
+    built = await buildV2InitiatePayload({
       orderId,
-      customerId: emailToCustId(senderEmail),
       amountRupees: paiseToTxnAmount(course.price_cents),
-      customerEmail: senderEmail,
+      custId: emailToCustId(senderEmail),
       callbackUrl,
+      email: senderEmail,
     });
-    action = built.action;
-    fields = built.fields;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[paytm:gift] buildLegacyForm failed", { orderId, error: msg });
+    console.error("[paytm:gift] buildV2InitiatePayload failed", { orderId, error: msg });
     return NextResponse.json({ error: "Failed to prepare payment" }, { status: 500 });
+  }
+
+  let paytmRes: Response;
+  let paytmJson: PaytmInitiateResponse;
+  try {
+    paytmRes = await fetch(built.url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(built.payload),
+    });
+    paytmJson = (await paytmRes.json()) as PaytmInitiateResponse;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[paytm:gift] Paytm fetch failed", { orderId, error: msg });
+    return NextResponse.json({ error: "Payment gateway unreachable" }, { status: 502 });
+  }
+
+  const resultStatus = paytmJson.body?.resultInfo?.resultStatus;
+  const resultCode = paytmJson.body?.resultInfo?.resultCode;
+  const resultMsg = paytmJson.body?.resultInfo?.resultMsg;
+  const txnToken = paytmJson.body?.txnToken;
+
+  if (!txnToken || resultStatus !== "S") {
+    console.error("[paytm:gift] Paytm rejected initiate request", {
+      orderId,
+      httpStatus: paytmRes.status,
+      paytmResultStatus: resultStatus,
+      paytmResultCode: resultCode,
+      paytmResultMsg: resultMsg,
+    });
+    return NextResponse.json(
+      {
+        error: "Payment gateway rejected the request",
+        paytm: { resultCode, resultMsg },
+      },
+      { status: 502 },
+    );
   }
 
   return NextResponse.json({
     orderId,
     mid: PAYTM.mid,
     amount: paiseToTxnAmount(course.price_cents),
-    action,
-    fields,
+    txnToken,
+    callbackUrl,
+    host: PAYTM.host,
   });
 }

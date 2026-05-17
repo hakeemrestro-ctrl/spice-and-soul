@@ -46,8 +46,15 @@ function loadConfig() {
   );
   const industryType = optionalEnv("PAYTM_INDUSTRY_TYPE_ID", "Retail");
   const channelId = optionalEnv("PAYTM_CHANNEL_ID", "WEB");
-  const host =
-    env === "test" ? "securegw-stage.paytm.in" : "securegw.paytm.in";
+  // API host: Paytm Payments Services Ltd accounts (dashboard.paytmpayments.com)
+  // use secure.paytmpayments.com / securestage.paytmpayments.com, NOT the
+  // legacy One97 securegw.paytm.in hosts. Hitting the wrong host returns
+  // RESPCODE 330 (legacy form) or resultCode 501 (V2) regardless of creds.
+  // Override via PAYTM_HOST if needed for legacy One97 accounts.
+  const host = optionalEnv(
+    "PAYTM_HOST",
+    env === "test" ? "securestage.paytmpayments.com" : "secure.paytmpayments.com",
+  );
 
   if (mid.length < 8 || mid.length > 24) {
     throw new Error(
