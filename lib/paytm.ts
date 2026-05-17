@@ -129,7 +129,18 @@ export async function verifySignature(
   const cfg = getConfig();
   try {
     return PaytmChecksum.verifySignature(params, cfg.key, signature);
-  } catch {
+  } catch (err) {
+    // Only swallow expected crypto failures (wrong key → AES bad decrypt).
+    // Anything else (input shape, undefined key, JSON parse) is a programmer
+    // bug — log it loudly so it doesn't masquerade as a checksum mismatch.
+    const code = (err as { code?: string }).code;
+    if (code === "ERR_OSSL_BAD_DECRYPT") {
+      return false;
+    }
+    console.error("[paytm:verify] unexpected verifySignature error", {
+      code,
+      message: err instanceof Error ? err.message : String(err),
+    });
     return false;
   }
 }

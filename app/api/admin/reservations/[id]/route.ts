@@ -15,11 +15,23 @@ export async function PATCH(
 ) {
   const { id } = await params;
 
-  // Auth-gate: must be admin
+  // Auth-gate: must be admin. Check public.users.is_admin (single source of
+  // truth). The old check used user.user_metadata.is_admin which is never
+  // populated — making this route effectively dead (always 401), AND a future
+  // attacker could write their own user_metadata via supabase.auth.updateUser
+  // and bypass the check. Use server-side users.is_admin lookup.
   const userClient = await createClient();
   const { data: { user } } = await userClient.auth.getUser();
-  const isAdmin = (user?.user_metadata?.is_admin as boolean | undefined) ?? false;
-  if (!user || !isAdmin) {
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const supabaseAuthCheck = createAdminClient();
+  const { data: profile } = await supabaseAuthCheck
+    .from("users")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single();
+  if (profile?.is_admin !== true) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

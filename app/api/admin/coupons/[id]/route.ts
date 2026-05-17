@@ -17,10 +17,20 @@ export async function PATCH(
 ) {
   const { id } = await params;
 
+  // Auth-gate: must be admin via public.users.is_admin (not user_metadata,
+  // which is never populated and would be a future auth-bypass vector).
   const userClient = await createClient();
   const { data: { user } } = await userClient.auth.getUser();
-  const isAdmin = (user?.user_metadata?.is_admin as boolean | undefined) ?? false;
-  if (!user || !isAdmin) {
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const supabaseAuthCheck = createAdminClient();
+  const { data: profile } = await supabaseAuthCheck
+    .from("users")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single();
+  if (profile?.is_admin !== true) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

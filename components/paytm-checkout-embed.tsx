@@ -63,6 +63,14 @@ export default function PaytmCheckoutEmbed({
   const [cancelled, setCancelled] = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
   const invokedRef = useRef(false);
+  const succeededRef = useRef(false);
+  // Stable ref to latest onCancel so the useEffect (and MutationObserver
+  // inside it) doesn't tear down on every parent render. The previous
+  // implementation listed `onCancel` in deps and parents pass an inline
+  // arrow each render → useEffect cleanup disconnected the observer
+  // immediately, killing the cancel-detection fallback.
+  const onCancelRef = useRef(onCancel);
+  onCancelRef.current = onCancel;
 
   const scriptSrc = `https://${host}/merchantpgpui/checkoutjs/merchants/${encodeURIComponent(mid)}.js`;
 
@@ -80,18 +88,27 @@ export default function PaytmCheckoutEmbed({
     // container from DOM (which it does on close), treat as cancellation.
     // Some Paytm V2 builds don't fire APP_CLOSED reliably on user-initiated
     // close — this MutationObserver catches those cases.
+    //
+    // Guarded by succeededRef so the observer does NOT misfire when Paytm
+    // tears down its DOM during a successful transactionStatus → /thank-you
+    // navigation (false-cancel race).
     let paytmMounted = false;
     const observer = new MutationObserver(() => {
+      if (succeededRef.current) {
+        observer.disconnect();
+        return;
+      }
       const stillThere = document.getElementById("paytm-app");
       if (stillThere) {
         paytmMounted = true;
         return;
       }
       if (paytmMounted) {
-        // Modal was rendered then removed. Treat as cancel.
+        // Modal was rendered then removed without a success state.
+        console.info("[paytm:checkout] DOM-cancel detector fired");
         observer.disconnect();
         setCancelled(true);
-        onCancel?.();
+        onCancelRef.current?.();
       }
     });
     observer.observe(document.body, { childList: true, subtree: true });
@@ -108,35 +125,38 @@ export default function PaytmCheckoutEmbed({
       handler: {
         notifyMerchant: (event: string, data: unknown) => {
           console.info("[paytm:checkout] notifyMerchant", { event, data });
-          // APP_CLOSED = user clicked X / closed modal without paying
           if (event === "APP_CLOSED") {
             setCancelled(true);
-            onCancel?.();
+            onCancelRef.current?.();
             return;
           }
-          // SESSION_EXPIRED = 15-min token timeout
           if (event === "SESSION_EXPIRED") {
             setError("Payment session expired. Start checkout again.");
             return;
           }
-          // Treat all *_ERROR events as failure modes
           if (event.endsWith("_ERROR")) {
             setError(`Paytm error: ${event}`);
           }
         },
         transactionStatus: (data: unknown) => {
           console.info("[paytm:checkout] transactionStatus", data);
-          // V2 SDK with redirect:false keeps user in-page after pay. Navigate
-          // explicitly on terminal states. /thank-you reads stripe_payment_intent_id
-          // column (kept for ID stability) populated with Paytm TXNID by the
-          // server-side callback.
           const d = (data ?? {}) as { STATUS?: string; TXNID?: string; RESPMSG?: string };
           if (d.STATUS === "TXN_SUCCESS" && d.TXNID) {
+            // Flag success BEFORE Paytm tears down its DOM, so the
+            // MutationObserver doesn't misread the teardown as a cancel.
+            succeededRef.current = true;
+            observer.disconnect();
             window.location.assign(`/thank-you?payment_intent=${encodeURIComponent(d.TXNID)}`);
             return;
           }
           if (d.STATUS === "TXN_FAILURE") {
             setError(`Payment failed: ${d.RESPMSG ?? "transaction declined"}`);
+            return;
+          }
+          if (d.STATUS && d.STATUS !== "PENDING") {
+            // Catch-all for unexpected terminal states (other than PENDING which
+            // resolves later). Surface so user isn't stuck on the spinner.
+            setError(`Unexpected payment status: ${d.STATUS}`);
           }
         },
       },
@@ -174,7 +194,11 @@ export default function PaytmCheckoutEmbed({
     return () => {
       observer.disconnect();
     };
-  }, [scriptReady, orderId, mid, amount, txnToken, onCancel]);
+    // onCancel intentionally NOT in deps — we read it via onCancelRef. Listing
+    // it caused the effect (and observer) to tear down every parent render
+    // since parents pass an inline arrow as onCancel.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scriptReady, orderId, mid, amount, txnToken]);
 
   return (
     <div className="rounded-2xl border border-cream-200 bg-cream-50 p-6">

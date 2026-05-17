@@ -34,5 +34,15 @@ export async function adminLogin(
     return { error: "Account is not an admin." };
   }
 
-  redirect(input.next && input.next.startsWith("/admin") ? input.next : "/admin");
+  // Open-redirect guard: input.next must be a strict same-origin path under
+  // /admin. Reject protocol-relative (`//evil.com/admin`), full URLs, and
+  // anything that doesn't begin with a single `/admin/...` or equal `/admin`.
+  const next = input.next;
+  const safe =
+    typeof next === "string" &&
+    next.startsWith("/admin") &&
+    !next.startsWith("//") &&
+    !next.startsWith("/\\") &&
+    !next.includes("://");
+  redirect(safe ? next : "/admin");
 }

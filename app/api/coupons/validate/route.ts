@@ -8,40 +8,40 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const parsed = ValidateCouponSchema.safeParse(body);
 
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
-  }
+  // Single uniform failure response for ALL coupon-validation rejections.
+  // Distinct status/error per failure mode (was 404/410/422) was an
+  // enumeration oracle: an attacker could brute-force valid codes by
+  // distinguishing "expired" from "wrong course" from "doesn't exist".
+  const reject = () =>
+    NextResponse.json({ error: "Invalid or expired coupon" }, { status: 400 });
+
+  if (!parsed.success) return reject();
 
   const { code, courseId } = parsed.data;
   const supabase = createAdminClient();
 
+  // Use exact-match on uppercase. Coupons are stored uppercase per admin
+  // creation route, and `ilike` would honor SQL `%`/`_` wildcards (Zod regex
+  // blocks them — defense in depth).
   const { data: coupon } = await supabase
     .from("coupons")
     .select("*")
     .eq("is_active", true)
-    .ilike("code", code)
+    .eq("code", code.toUpperCase())
     .single();
 
-  if (!coupon) {
-    return NextResponse.json({ error: "Invalid or expired coupon" }, { status: 404 });
+  if (!coupon) return reject();
+  if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) return reject();
+  if (coupon.max_uses != null && coupon.uses_count >= coupon.max_uses) return reject();
+  if (
+    coupon.applies_to_course_ids?.length &&
+    !coupon.applies_to_course_ids.includes(courseId)
+  ) {
+    return reject();
   }
 
-  // Expiry check
-  if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) {
-    return NextResponse.json({ error: "Coupon has expired" }, { status: 410 });
-  }
-
-  // Max-uses check
-  if (coupon.max_uses != null && coupon.uses_count >= coupon.max_uses) {
-    return NextResponse.json({ error: "Coupon has reached its usage limit" }, { status: 410 });
-  }
-
-  // Course restriction check
-  if (coupon.applies_to_course_ids?.length && !coupon.applies_to_course_ids.includes(courseId)) {
-    return NextResponse.json({ error: "Coupon does not apply to this course" }, { status: 422 });
-  }
-
-  // Fetch course price to compute discount
+  // Fetch course price to compute discount. Distinct error here is OK —
+  // course IDs are server-side UUIDs, not user-guessable.
   const { data: course } = await supabase
     .from("courses")
     .select("price_cents")

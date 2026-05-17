@@ -134,8 +134,40 @@ export async function POST(req: NextRequest) {
     return redirectTo("/courses?payment=failed");
   }
 
-  // Idempotency: have we already processed this exact callback?
-  const callbackEventId = `paytm_${orderId}_${callbackTxnId ?? "no-txn"}`;
+  // 1. Verify checksum FIRST. Idempotency must key off verified data — if we
+  // dedup on raw form params before verification, an attacker who knows an
+  // ORDERID could POST a forged TXN_SUCCESS, poisoning the webhook_events
+  // table; the real callback would then hit the dedup branch and redirect
+  // the user to an attacker-controlled TXNID.
+  const { CHECKSUMHASH: _drop, ...verifyParams } = formParams;
+  void _drop;
+  const checksumOk = await verifySignature(verifyParams, checksum);
+
+  if (!checksumOk) {
+    console.error("[paytm:callback] checksum verification failed", {
+      orderId,
+      midTail: PAYTM.mid.slice(-4),
+      ...safeFormSummary(formParams),
+    });
+    return redirectTo("/courses?payment=failed");
+  }
+
+  // 2. Always re-verify with the Status Query API. Don't trust the callback
+  // body alone — Paytm's authoritative source-of-truth for txn state.
+  const sq = await callStatusQuery(orderId);
+  if (!sq.ok) {
+    console.error("[paytm:callback] status query unreachable", {
+      orderId,
+      host: PAYTM.host,
+    });
+    return redirectTo("/courses?payment=failed");
+  }
+
+  // 3. Idempotency — only AFTER checksum + status query confirm authenticity.
+  // Key uses the Status Query txnId (Paytm's server) over the callback body
+  // when available, so attacker-controlled callbackTxnId can't pre-poison.
+  const verifiedTxnId = sq.txnId ?? callbackTxnId;
+  const callbackEventId = `paytm_${orderId}_${verifiedTxnId ?? "no-txn"}`;
   const { error: eventErr } = await supabase
     .from("webhook_events")
     .insert({
@@ -146,35 +178,16 @@ export async function POST(req: NextRequest) {
 
   if (eventErr) {
     if ((eventErr as { code?: string }).code === "23505") {
-      // Duplicate → already processed. Redirect to /thank-you idempotently.
-      return callbackStatus === "TXN_SUCCESS" && callbackTxnId
-        ? redirectTo(`/thank-you?payment_intent=${callbackTxnId}`)
+      // Duplicate verified callback → already processed. Idempotent redirect.
+      return sq.status === "TXN_SUCCESS" && verifiedTxnId
+        ? redirectTo(`/thank-you?payment_intent=${verifiedTxnId}`)
         : redirectTo("/courses?payment=failed");
     }
-    console.warn("webhook_events insert error:", eventErr.message);
-  }
-
-  // 1. Verify checksum from the callback body itself
-  const { CHECKSUMHASH: _drop, ...verifyParams } = formParams;
-  void _drop;
-  const checksumOk = await verifySignature(verifyParams, checksum);
-
-  if (!checksumOk) {
-    // Error 330 territory. Structured non-PII log so we can grep prod for it.
-    console.error("[paytm:callback] checksum verification failed", {
+    // Non-duplicate insert error = idempotency table broken. Fail loud.
+    console.error("[paytm:callback] webhook_events insert failed", {
       orderId,
-      midTail: PAYTM.mid.slice(-4),
-      ...safeFormSummary(formParams),
-    });
-    return redirectTo("/courses?payment=failed");
-  }
-
-  // 2. Always re-verify with the Status Query API. Don't trust the callback body alone.
-  const sq = await callStatusQuery(orderId);
-  if (!sq.ok) {
-    console.error("[paytm:callback] status query unreachable", {
-      orderId,
-      host: PAYTM.host,
+      code: (eventErr as { code?: string }).code,
+      message: eventErr.message,
     });
     return redirectTo("/courses?payment=failed");
   }
@@ -218,8 +231,20 @@ export async function POST(req: NextRequest) {
     return redirectTo("/courses?payment=failed");
   }
 
-  // Mark pending paid and store the verified TXNID
-  const txnId = sq.txnId ?? callbackTxnId!;
+  // Mark pending paid and store the verified TXNID. Final status flips to
+  // either "paid" (fulfillment succeeded) or "paid_unfulfilled" below, so
+  // admin/cron can find and retry the failed deliveries.
+  const txnId = sq.txnId;
+  if (!txnId) {
+    // Should never happen given isSuccess gate above, but guard anyway —
+    // never persist a falsy TXNID into the orders ledger.
+    console.error("[paytm:callback] verified-success path missing sq.txnId", {
+      orderId,
+      callbackTxnId,
+    });
+    return redirectTo("/courses?payment=failed");
+  }
+
   await supabase
     .from("pending_orders")
     .update({
@@ -230,18 +255,40 @@ export async function POST(req: NextRequest) {
     })
     .eq("order_id", orderId);
 
-  // 3. Run fulfillment (port of the old Stripe webhook handler)
-  await fulfillOrder({
-    pending,
-    txnId,
-    paytmAmount: sq.amount ?? formParams.TXNAMOUNT ?? "0",
-    paymentMode: sq.paymentMode ?? formParams.PAYMENTMODE ?? null,
-    bankName: sq.bankName ?? formParams.BANKNAME ?? null,
-    supabase,
-  }).catch((err) => {
-    // Don't fail the redirect — order is recorded, customer can /resend
-    console.error("Fulfillment error for", orderId, err);
-  });
+  // 3. Run fulfillment (port of the old Stripe webhook handler). AWAIT it so
+  // we know whether the customer actually got their email/PDFs before they
+  // land on /thank-you. On failure, mark pending_orders so it shows up in
+  // admin retry queue (instead of silently appearing "paid" with no order).
+  try {
+    await fulfillOrder({
+      pending,
+      txnId,
+      paytmAmount: sq.amount ?? formParams.TXNAMOUNT ?? "0",
+      paymentMode: sq.paymentMode ?? formParams.PAYMENTMODE ?? null,
+      bankName: sq.bankName ?? formParams.BANKNAME ?? null,
+      supabase,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[paytm:callback] FULFILLMENT FAILED", {
+      orderId,
+      txnId,
+      error: msg,
+    });
+    // Keep status="paid" (CHECK constraint pre-0017 doesn't allow
+    // 'paid_unfulfilled') but flag via resp_msg so admin can query
+    //   WHERE status='paid' AND resp_msg LIKE 'fulfillment_error:%'
+    // and remediate. After migration 0017 applies, switch this back to
+    // status='paid_unfulfilled' for a cleaner enum.
+    await supabase
+      .from("pending_orders")
+      .update({
+        resp_msg: `fulfillment_error: ${msg}`.slice(0, 500),
+      })
+      .eq("order_id", orderId);
+    // User still lands on /thank-you with their TXNID — they can use /resend
+    // to redeliver. Admin gets resp_msg signal in the pending_orders table.
+  }
 
   return redirectTo(`/thank-you?payment_intent=${txnId}`);
 }
