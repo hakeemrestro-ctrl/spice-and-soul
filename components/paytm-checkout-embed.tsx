@@ -75,6 +75,27 @@ export default function PaytmCheckoutEmbed({
     }
 
     invokedRef.current = true;
+
+    // Fallback cancellation detector: if Paytm SDK removes its #paytm-app
+    // container from DOM (which it does on close), treat as cancellation.
+    // Some Paytm V2 builds don't fire APP_CLOSED reliably on user-initiated
+    // close — this MutationObserver catches those cases.
+    let paytmMounted = false;
+    const observer = new MutationObserver(() => {
+      const stillThere = document.getElementById("paytm-app");
+      if (stillThere) {
+        paytmMounted = true;
+        return;
+      }
+      if (paytmMounted) {
+        // Modal was rendered then removed. Treat as cancel.
+        observer.disconnect();
+        setCancelled(true);
+        onCancel?.();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
     const config: PaytmCheckoutConfig = {
       root: "",
       flow: "DEFAULT",
@@ -149,6 +170,10 @@ export default function PaytmCheckoutEmbed({
         setError(`Could not start Paytm checkout: ${msg}`);
       }
     });
+
+    return () => {
+      observer.disconnect();
+    };
   }, [scriptReady, orderId, mid, amount, txnToken, onCancel]);
 
   return (
