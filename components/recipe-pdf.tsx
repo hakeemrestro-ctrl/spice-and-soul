@@ -699,7 +699,7 @@ function NumberedStep({ index, text }: { index: number; text: string }) {
 function PageHeader({ courseTitle }: { courseTitle: string }) {
   return (
     <View style={s.bodyHeader} fixed>
-      <Text style={s.bodyHeaderLeft}>Hakeem&apos;s · Spice &amp; Soul Academy</Text>
+      <Text style={s.bodyHeaderLeft}>Hakeem · Spice &amp; Soul Academy</Text>
       <Text style={s.bodyHeaderRight}>{courseTitle}</Text>
     </View>
   );
@@ -713,7 +713,7 @@ function PageFooter() {
         render={({ pageNumber }) => String(pageNumber).padStart(2, "0")}
       />
       <View style={s.pageFooterRule} />
-      <Text style={s.pageFooterText}>Hakeem&apos;s Recipe Collection</Text>
+      <Text style={s.pageFooterText}>Hakeem Recipe Collection</Text>
     </View>
   );
 }
@@ -794,8 +794,8 @@ export function RecipePdf({ course, recipes, customerName, date }: Props) {
 
   return (
     <Document
-      title={`${course.title} — Hakeem's Recipe Book`}
-      author="Hakeem's · Spice & Soul Academy"
+      title={`${course.title} — Hakeem Recipe Book`}
+      author="Hakeem · Spice & Soul Academy"
       subject="Authentic Indian Cooking Recipes"
     >
       {/* ══════════════════════════════════════════════════════════════ COVER */}
@@ -803,7 +803,7 @@ export function RecipePdf({ course, recipes, customerName, date }: Props) {
         <View style={s.coverInner}>
           <DotOverlay color={C.saffron400} opacity={0.08} dotsX={18} dotsY={26} />
 
-          <Text style={s.coverEyebrow}>Spice &amp; Soul Academy · by Hakeem&apos;s</Text>
+          <Text style={s.coverEyebrow}>Spice &amp; Soul Academy · by Hakeem</Text>
 
           <View style={s.coverTitleStack}>
             <Text style={s.coverMiniLabel}>RECIPE COLLECTION</Text>
@@ -825,7 +825,7 @@ export function RecipePdf({ course, recipes, customerName, date }: Props) {
 
           <View style={s.coverFooterBand}>
             <Text style={s.coverFooterText}>
-              GSTIN 23CNEPK6523K1ZZ · NK Ventures
+              GSTIN 23CNEPK6523K1ZZ · N K VENTURES
             </Text>
             <Text style={s.coverFooterText}>{date}</Text>
           </View>
@@ -843,7 +843,7 @@ export function RecipePdf({ course, recipes, customerName, date }: Props) {
         <View style={s.welcomeIntro}>
           <Text style={s.welcomeIntroPara}>
             <Text style={s.welcomeDropCapInline}>T</Text>
-            hese recipes come from a kitchen that has been cooking the same way since 1987. Every spice ratio, every cooking time, every tip — carried forward from Ustad Hakeem&apos;s original notes and tested again in our Indore kitchen before being written here for you.
+            hese recipes come from a kitchen that has been cooking the same way since 1971. Every spice ratio, every cooking time, every tip — carried forward from Ustad Hakeem original notes and tested again in our Bhopal kitchen before being written here for you.
           </Text>
 
           <Text style={s.welcomeIntroPara}>
@@ -857,7 +857,7 @@ export function RecipePdf({ course, recipes, customerName, date }: Props) {
 
         <View style={s.welcomeSignBlock}>
           <Text style={s.welcomeSignName}>— Naveed Khan</Text>
-          <Text style={s.welcomeSignTitle}>NK Ventures · Indore</Text>
+          <Text style={s.welcomeSignTitle}>N K VENTURES · Bhopal</Text>
         </View>
 
         <PageFooter />
@@ -977,21 +977,21 @@ export function RecipePdf({ course, recipes, customerName, date }: Props) {
           <DotOverlay color={C.saffron400} opacity={0.08} dotsX={18} dotsY={26} />
 
           <Text style={s.backH}>H</Text>
-          <Text style={s.backHakeem}>Hakeem&apos;s</Text>
+          <Text style={s.backHakeem}>Hakeem</Text>
           <Text style={s.backAcademy}>Spice &amp; Soul Academy</Text>
 
           <View style={s.backRule} />
 
           <Text style={s.backAddress}>
             34, Siyaganj Market Road{"\n"}
-            Indore, Madhya Pradesh — 452 001{"\n"}
+            Bhopal, Madhya Pradesh — 462 001{"\n"}
             +91 731 245 6789{"\n"}
-            spiceandsoul.com
+            hakeemrestro.shop
           </Text>
 
           <View style={s.backLegal}>
             <Text style={s.backGst}>GSTIN 23CNEPK6523K1ZZ</Text>
-            <Text style={s.backCopy}>© 2026 NK Ventures · Owner: Naveed Khan</Text>
+            <Text style={s.backCopy}>© 2026 N K VENTURES · Owner: Naveed Khan</Text>
           </View>
         </View>
       </Page>

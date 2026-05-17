@@ -1,16 +1,16 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Check, ShieldCheck, Lock } from "lucide-react";
+export const revalidate = 3600; // ISR: course content rarely changes
+
 import { createClient } from "@/lib/supabase/server";
-import { RecipeAccordion } from "@/components/recipe-accordion";
 import { InstructorBio } from "@/components/instructor-bio";
 import { Testimonials } from "@/components/testimonials";
 import { FaqAccordion } from "@/components/faq-accordion";
 import { NewsletterSignup } from "@/components/newsletter-signup";
-import { InstallmentCheckoutButton } from "@/components/installment-checkout-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { Course, Recipe } from "@/types";
+import type { Course } from "@/types";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -23,7 +23,7 @@ function youtubeEmbedId(url: string | null): string | null {
   return m?.[1] ?? null;
 }
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://spiceandsoul.com";
+const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://hakeemrestro.shop";
 
 export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
@@ -56,6 +56,7 @@ export async function generateMetadata({ params }: Props) {
 
 const FEATURE_LIST = [
   "{count} authentic recipes",
+  "Lifetime access — yours forever",
   "Instant email delivery",
   "Re-send PDFs anytime",
   "PDF invoice included",
@@ -76,14 +77,7 @@ export default async function CourseDetailPage({ params }: Props) {
 
   const course = courseData as Course;
 
-  const { data: recipesData } = await supabase
-    .from("recipes")
-    .select("*")
-    .eq("course_id", course.id)
-    .order("sort_order");
-
-  const recipes = (recipesData ?? []) as Recipe[];
-  const priceDisplay = `$${(course.price_cents / 100).toFixed(0)}`;
+  const priceDisplay = `₹${(course.price_cents / 100).toLocaleString("en-IN")}`;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -94,13 +88,13 @@ export default async function CourseDetailPage({ params }: Props) {
     image: course.image_url ?? undefined,
     provider: {
       "@type": "Organization",
-      name: "Spice & Soul Academy by Hakeem's",
+      name: "Spice & Soul Academy by Hakeem",
       url: BASE,
     },
     offers: {
       "@type": "Offer",
       price: (course.price_cents / 100).toFixed(2),
-      priceCurrency: "USD",
+      priceCurrency: "INR",
       availability: "https://schema.org/InStock",
       url: `${BASE}/checkout?courseId=${course.id}`,
     },
@@ -110,7 +104,7 @@ export default async function CourseDetailPage({ params }: Props) {
       instructor: {
         "@type": "Person",
         name: "Chef Hakeem",
-        description: "Head chef and founder of Hakeem's Restaurant, Indore",
+        description: "Head chef and founder of Hakeem Restaurant, Bhopal",
       },
     },
   };
@@ -169,24 +163,24 @@ export default async function CourseDetailPage({ params }: Props) {
             <h2 className="mb-4 font-display text-2xl text-clove-700">
               About this course
             </h2>
-            <p className="font-sans leading-relaxed text-clove-600">
-              {course.description}
-            </p>
+            <div className="space-y-4 font-sans leading-relaxed text-clove-600">
+              {course.description
+                .split(/(?<=\.)\s+(?=[A-Z])/)
+                .reduce<string[][]>((acc, sentence, i) => {
+                  const group = Math.floor(i / 2);
+                  if (!acc[group]) acc[group] = [];
+                  acc[group].push(sentence);
+                  return acc;
+                }, [])
+                .map((sentences, i) => (
+                  <p key={i}>{sentences.join(" ")}</p>
+                ))}
+            </div>
           </section>
 
           <Testimonials />
 
-          <section>
-            <h2 className="mb-5 font-display text-2xl text-clove-700">
-              Recipe list{" "}
-              <span className="font-sans text-base font-normal text-clove-300">
-                ({recipes.length})
-              </span>
-            </h2>
-            <RecipeAccordion recipes={recipes} />
-          </section>
-
-          {!course.is_bundle && <NewsletterSignup variant="card" />}
+          <NewsletterSignup variant="card" />
 
           <FaqAccordion />
         </div>
@@ -212,19 +206,10 @@ export default async function CourseDetailPage({ params }: Props) {
               }
               nativeButton={false}
             />
-            {/* Installment plan option for bundle */}
-            {course.is_bundle && (
-              <div className="mb-2">
-                <InstallmentCheckoutButton
-                  courseId={course.id}
-                  monthlyCents={Math.ceil(course.price_cents / 3)}
-                />
-              </div>
-            )}
             {/* Secure checkout */}
             <p className="mb-3 flex items-center justify-center gap-1.5 font-sans text-xs text-clove-400">
               <Lock className="size-3 shrink-0" aria-hidden />
-              Secure checkout · Stripe
+              Secure checkout · Paytm
             </p>
             <div className="mb-5 flex items-center justify-center gap-2 rounded-lg bg-cardamom-100 px-3 py-2 font-sans text-xs font-medium text-cardamom-600">
               <ShieldCheck className="size-3.5 shrink-0" aria-hidden />

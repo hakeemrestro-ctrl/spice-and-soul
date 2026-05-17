@@ -12,7 +12,7 @@ import { resend } from "@/lib/resend";
 import { ReviewRequestEmail } from "@/components/email-templates/review-request-email";
 import type { Course } from "@/types";
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://spiceandsoul.com";
+const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://hakeemrestro.shop";
 
 export async function GET(req: NextRequest) {
   // Vercel cron sends `Authorization: Bearer $CRON_SECRET`.
@@ -80,8 +80,8 @@ export async function GET(req: NextRequest) {
 
     try {
       await resend.emails.send({
-        from: "Spice & Soul Academy <hello@spiceandsoul.com>",
-        replyTo: "support@spiceandsoul.com",
+        from: "Spice & Soul Academy <hello@hakeemrestro.shop>",
+        replyTo: "hakeemrestro@gmail.com",
         to: order.customer_email,
         subject: `How did ${course.title} go? Share your experience`,
         react: createElement(ReviewRequestEmail, {

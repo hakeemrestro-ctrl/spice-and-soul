@@ -72,7 +72,7 @@ export function NewsletterSignup({ variant = "card" }: Props) {
       <div className="eyebrow mb-3 text-saffron-600">FREE · 3 RECIPES</div>
       <h3 className="mb-1 font-display text-xl text-clove-700">Get a free taste first</h3>
       <p className="mb-4 font-sans text-sm leading-relaxed text-clove-600">
-        Drop your email and we&apos;ll send 3 authentic recipes from Hakeem&apos;s kitchen — instantly.
+        Drop your email and we&apos;ll send 3 authentic recipes from Hakeem kitchen — instantly.
       </p>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <input

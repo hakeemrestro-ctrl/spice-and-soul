@@ -20,12 +20,6 @@ importers:
       '@react-pdf/renderer':
         specifier: ^4.5.1
         version: 4.5.1(react@19.2.4)
-      '@stripe/react-stripe-js':
-        specifier: ^6.2.0
-        version: 6.2.0(@stripe/stripe-js@9.3.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      '@stripe/stripe-js':
-        specifier: ^9.3.1
-        version: 9.3.1
       '@supabase/ssr':
         specifier: ^0.10.2
         version: 0.10.2(@supabase/supabase-js@2.104.1)
@@ -38,12 +32,18 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      lightningcss:
+        specifier: ^1.32.0
+        version: 1.32.0
       lucide-react:
         specifier: ^1.11.0
         version: 1.11.0(react@19.2.4)
       next:
         specifier: 16.2.4
         version: 16.2.4(@babel/core@7.29.0)(@playwright/test@1.59.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      paytmchecksum:
+        specifier: ^1.5.1
+        version: 1.5.1
       react:
         specifier: 19.2.4
         version: 19.2.4
@@ -56,9 +56,6 @@ importers:
       resend:
         specifier: ^6.12.2
         version: 6.12.2(@react-email/render@2.0.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4))
-      stripe:
-        specifier: ^22.1.0
-        version: 22.1.0(@types/node@20.19.39)
       tailwind-merge:
         specifier: ^3.5.0
         version: 3.5.0
@@ -1303,17 +1300,6 @@ packages:
 
   '@standard-schema/utils@0.3.0':
     resolution: {integrity: sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g==}
-
-  '@stripe/react-stripe-js@6.2.0':
-    resolution: {integrity: sha512-GSCErjljZEQv9LaxP30xGOwstcMyyUzb5JyihXwvjOU95yrfhbiPG4K2KkwxYxn+WY0/AyHsRhPPoGRw7urBzg==}
-    peerDependencies:
-      '@stripe/stripe-js': '>=9.2.0 <10.0.0'
-      react: '>=16.8.0 <20.0.0'
-      react-dom: '>=16.8.0 <20.0.0'
-
-  '@stripe/stripe-js@9.3.1':
-    resolution: {integrity: sha512-oWpAEENuVg8aw4W2OUAM9WxRDtIV2YTLr2nr6qHT+D8tHPW7bya61ufinPpUespyRNUVXqesnHo+jQdUNsGywA==}
-    engines: {node: '>=12.16'}
 
   '@supabase/auth-js@2.104.1':
     resolution: {integrity: sha512-pqFnDKekq1isqlqnzqzyJ3mzmho+o+FjfVTqhKY3PFlwj2anx3OPznO1kbo1ZEwD8zg1r4EAFf/7pplLyX0ocQ==}
@@ -3463,6 +3449,9 @@ packages:
   pathe@2.0.3:
     resolution: {integrity: sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==}
 
+  paytmchecksum@1.5.1:
+    resolution: {integrity: sha512-RnimtEcnP3b7FiakPYkyO416UubaUflG5e2HlM2UYhryZ9wXwoRZ5k8XEK4wxaK+d7qIzWDMFUo1LICgaU+J0A==}
+
   peberminta@0.9.0:
     resolution: {integrity: sha512-XIxfHpEuSJbITd1H3EeQwpcZbTLHc+VVr8ANI9t5sit565tsI4/xK3KWTUFE2e6QiangUkh3B0jihzmGnNrRsQ==}
 
@@ -3896,15 +3885,6 @@ packages:
   strip-json-comments@3.1.1:
     resolution: {integrity: sha512-6fPc+R4ihwqP6N/aIv2f1gMH8lOVtWQHoqC4yK6oSDVVocumAsfCqjkXnqiYMhmMwS/mEHLp7Vehlt3ql6lEig==}
     engines: {node: '>=8'}
-
-  stripe@22.1.0:
-    resolution: {integrity: sha512-w/xHyJGxXWnLPbNHG13sz/fae0MrFGC80Oz7YbICQymbfpqfEcsoG+6yG+9BWb81PWc4rrkeSO4wmTcmefmbLw==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      '@types/node': '>=18'
-    peerDependenciesMeta:
-      '@types/node':
-        optional: true
 
   styled-jsx@5.1.6:
     resolution: {integrity: sha512-qSVyDTeMotdvQYoHWLNGwRFJHC+i+ZvdBRYosOFgC+Wg1vx4frN2/RG/NA7SYqqvKNLf39P2LSRA2pu6n0XYZA==}
@@ -5394,15 +5374,6 @@ snapshots:
   '@standard-schema/spec@1.1.0': {}
 
   '@standard-schema/utils@0.3.0': {}
-
-  '@stripe/react-stripe-js@6.2.0(@stripe/stripe-js@9.3.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
-    dependencies:
-      '@stripe/stripe-js': 9.3.1
-      prop-types: 15.8.1
-      react: 19.2.4
-      react-dom: 19.2.4(react@19.2.4)
-
-  '@stripe/stripe-js@9.3.1': {}
 
   '@supabase/auth-js@2.104.1':
     dependencies:
@@ -7687,6 +7658,8 @@ snapshots:
 
   pathe@2.0.3: {}
 
+  paytmchecksum@1.5.1: {}
+
   peberminta@0.9.0: {}
 
   picocolors@1.1.1: {}
@@ -8243,10 +8216,6 @@ snapshots:
       min-indent: 1.0.1
 
   strip-json-comments@3.1.1: {}
-
-  stripe@22.1.0(@types/node@20.19.39):
-    optionalDependencies:
-      '@types/node': 20.19.39
 
   styled-jsx@5.1.6(@babel/core@7.29.0)(react@19.2.4):
     dependencies:

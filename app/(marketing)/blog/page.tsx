@@ -3,7 +3,7 @@ import { ALL_POSTS } from "@/content/blog";
 
 export const metadata = {
   title: "Blog — Spice & Soul Academy",
-  description: "Indian cooking tips, techniques, and stories from Hakeem's kitchen.",
+  description: "Indian cooking tips, techniques, and stories from Hakeem kitchen.",
 };
 
 function formatDate(iso: string): string {

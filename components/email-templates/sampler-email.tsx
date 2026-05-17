@@ -21,7 +21,7 @@ export function SamplerEmail({ name, coursesUrl }: Props) {
   return (
     <Html lang="en">
       <Head />
-      <Preview>Your free Indian cooking sampler is attached — 3 recipes from Hakeem&apos;s kitchen</Preview>
+      <Preview>Your free Indian cooking sampler is attached — 3 recipes from Hakeem kitchen</Preview>
       <Body style={body}>
         <Container style={container}>
           {/* Header */}
@@ -37,7 +37,7 @@ export function SamplerEmail({ name, coursesUrl }: Props) {
             <Text style={para}>{greeting}</Text>
             <Text style={para}>
               We&apos;ve attached your <strong>3-recipe sampler PDF</strong> — a small taste of what&apos;s
-              inside our full courses. These are real recipes from Hakeem&apos;s kitchen in Indore,
+              inside our full courses. These are real recipes from Hakeem kitchen in Bhopal,
               where three generations of chefs have refined every spice ratio and technique.
             </Text>
 
@@ -63,7 +63,7 @@ export function SamplerEmail({ name, coursesUrl }: Props) {
 
             <Hr style={divider} />
             <Text style={footer}>
-              Spice &amp; Soul Academy · by Hakeem&apos;s, Indore
+              Spice &amp; Soul Academy · by Hakeem, Bhopal
               <br />
               You received this because you requested the free sampler.{" "}
               No future marketing unless you purchase a course.
@@ -77,7 +77,7 @@ export function SamplerEmail({ name, coursesUrl }: Props) {
 
 SamplerEmail.PreviewProps = {
   name: "Priya",
-  coursesUrl: "https://spiceandsoul.com/courses",
+  coursesUrl: "https://hakeemrestro.shop/courses",
 } satisfies Props;
 
 const body: React.CSSProperties = {

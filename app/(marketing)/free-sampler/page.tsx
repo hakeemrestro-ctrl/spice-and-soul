@@ -4,7 +4,7 @@ import { SamplerForm } from "./sampler-form";
 export const metadata: Metadata = {
   title: "Free Recipe Sampler — Spice & Soul Academy",
   description:
-    "Get 3 authentic Indian recipes from Hakeem's kitchen, delivered free to your inbox. No account needed.",
+    "Get 3 authentic Indian recipes from Hakeem kitchen, delivered free to your inbox. No account needed.",
 };
 
 export default function FreeSamplerPage() {
@@ -14,13 +14,13 @@ export default function FreeSamplerPage() {
       <div className="eyebrow mb-4 text-saffron-500">FREE · INSTANT DELIVERY</div>
 
       <h1 className="mb-3 font-display text-[clamp(36px,5vw,52px)] leading-[1.05] text-clove-700">
-        3 recipes from<br />Hakeem&apos;s kitchen
+        3 recipes from<br />Hakeem kitchen
       </h1>
       <p className="mb-8 font-display text-xl italic leading-snug text-clove-500">
         A free taste before you dive in.
       </p>
       <p className="mb-8 font-sans text-[15px] leading-relaxed text-clove-600">
-        Enter your email and we&apos;ll send a 3-recipe sampler PDF — straight from the Hakeem&apos;s
+        Enter your email and we&apos;ll send a 3-recipe sampler PDF — straight from the Hakeem
         recipe archive. No account, no card, no strings.
       </p>
 

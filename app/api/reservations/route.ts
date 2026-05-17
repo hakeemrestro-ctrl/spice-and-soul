@@ -50,10 +50,10 @@ export async function POST(req: NextRequest) {
   // Send confirmation to guest + notify staff (best effort)
   void Promise.all([
     resend.emails.send({
-      from: "Hakeem's Restaurant <hello@spiceandsoul.com>",
-      replyTo: "restaurant@spiceandsoul.com",
+      from: "Hakeem Restaurant <hello@hakeemrestro.shop>",
+      replyTo: "hakeemrestro@gmail.com",
       to: email,
-      subject: "Reservation request received — Hakeem's Restaurant",
+      subject: "Reservation request received — Hakeem Restaurant",
       react: createElement(ReservationConfirmationEmail, {
         guestName: name,
         partySize,
@@ -62,8 +62,8 @@ export async function POST(req: NextRequest) {
       }),
     }),
     resend.emails.send({
-      from: "Hakeem's Restaurant <hello@spiceandsoul.com>",
-      to: "restaurant@spiceandsoul.com",
+      from: "Hakeem Restaurant <hello@hakeemrestro.shop>",
+      to: "hakeemrestro@gmail.com",
       subject: `New reservation: ${name} · ${partySize} people`,
       react: createElement(ReservationNotifyStaffEmail, {
         guestName: name,

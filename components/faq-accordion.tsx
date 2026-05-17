@@ -29,7 +29,7 @@ const DEFAULT_FAQ: FaqItem[] = [
   },
   {
     q: "Is there video content included?",
-    a: "Currently the courses are detailed text + photos with extensive technique notes and tips from Hakeem's 30 years of experience. Step-by-step video tutorials are planned for 2026 and will be added to your account at no extra cost.",
+    a: "Currently the courses are detailed text + photos with extensive technique notes and tips from Hakeem 30 years of experience. Step-by-step video tutorials are planned for 2026 and will be added to your account at no extra cost.",
   },
   {
     q: "How long do I have access?",

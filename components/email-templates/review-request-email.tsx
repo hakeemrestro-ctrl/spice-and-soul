@@ -51,7 +51,7 @@ export function ReviewRequestEmail({ customerName, courseTitle, reviewUrl }: Pro
 
             <Hr style={divider} />
             <Text style={footer}>
-              Spice &amp; Soul Academy · by Hakeem&apos;s, Indore
+              Spice &amp; Soul Academy · by Hakeem, Bhopal
               <br />
               You&apos;re receiving this because you purchased a course. This is a one-time
               review request — no further emails.
@@ -66,7 +66,7 @@ export function ReviewRequestEmail({ customerName, courseTitle, reviewUrl }: Pro
 ReviewRequestEmail.PreviewProps = {
   customerName: "Priya Singh",
   courseTitle: "North Indian Classics",
-  reviewUrl: "https://spiceandsoul.com/review/some-token",
+  reviewUrl: "https://hakeemrestro.shop/review/some-token",
 } satisfies Props;
 
 const body: React.CSSProperties = {

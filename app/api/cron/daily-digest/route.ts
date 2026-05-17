@@ -53,10 +53,10 @@ export async function GET(req: NextRequest) {
     day: "numeric",
   });
 
-  const adminEmail = process.env.ADMIN_DIGEST_EMAIL ?? "admin@spiceandsoul.com";
+  const adminEmail = process.env.ADMIN_DIGEST_EMAIL ?? "hakeemrestro@gmail.com";
 
   await resend.emails.send({
-    from: "Spice & Soul Academy <hello@spiceandsoul.com>",
+    from: "Spice & Soul Academy <hello@hakeemrestro.shop>",
     to: adminEmail,
     subject: `Daily digest — ${date}`,
     react: createElement(DailyDigestEmail, {

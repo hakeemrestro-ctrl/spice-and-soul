@@ -1,38 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { loadStripe, type StripeElementsOptions } from "@stripe/stripe-js";
-import { Elements } from "@stripe/react-stripe-js";
-import CheckoutForm from "@/components/checkout-form";
+import PaytmCheckoutEmbed from "@/components/paytm-checkout-embed";
 import { Lock, Gift } from "lucide-react";
 import type { Course } from "@/types";
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
-
-const stripeAppearance: StripeElementsOptions["appearance"] = {
-  theme: "stripe",
-  variables: {
-    colorPrimary: "#f29b1f",
-    colorBackground: "#ffffff",
-    colorText: "#3e2c19",
-    colorDanger: "#a13818",
-    fontFamily: "Geist, system-ui, sans-serif",
-    borderRadius: "12px",
-    spacingUnit: "4px",
-  },
-  rules: {
-    ".Input": { border: "1px solid #ddc9af", padding: "11px 13px", boxShadow: "none" },
-    ".Input:focus": { border: "2px solid #f29b1f", boxShadow: "0 0 0 4px rgba(242,155,31,0.20)" },
-    ".Label": { color: "#281a0d", fontWeight: "500" },
-  },
-};
-
-function formatDollars(cents: number): string {
-  return `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 0 })}`;
+function formatRupees(paise: number): string {
+  return `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 0 })}`;
 }
 
+type PaytmConfig = {
+  orderId: string;
+  mid: string;
+  amount: string;
+  action: string;
+  fields: Record<string, string>;
+};
+
 export function GiftCheckoutClient({ course }: { course: Course }) {
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [paytmConfig, setPaytmConfig] = useState<PaytmConfig | null>(null);
   const [senderName, setSenderName] = useState("");
   const [senderEmail, setSenderEmail] = useState("");
   const [recipientName, setRecipientName] = useState("");
@@ -59,8 +45,14 @@ export function GiftCheckoutClient({ course }: { course: Course }) {
         }),
       });
       const data = await res.json();
-      if (data.clientSecret) {
-        setClientSecret(data.clientSecret);
+      if (data.orderId && data.action && data.fields && data.amount) {
+        setPaytmConfig({
+          orderId: data.orderId,
+          mid: data.mid,
+          amount: data.amount,
+          action: data.action,
+          fields: data.fields,
+        });
       } else {
         setError(data.error ?? "Something went wrong");
       }
@@ -71,16 +63,19 @@ export function GiftCheckoutClient({ course }: { course: Course }) {
     }
   };
 
-  if (clientSecret) {
+  if (paytmConfig) {
     return (
       <div>
         <p className="mb-4 font-sans text-sm text-clove-600">
           Gifting <strong>{course.title}</strong> to{" "}
-          <strong>{recipientEmail}</strong> · {formatDollars(course.price_cents)}
+          <strong>{recipientEmail}</strong> · {formatRupees(course.price_cents)}
         </p>
-        <Elements stripe={stripePromise} options={{ clientSecret, appearance: stripeAppearance }}>
-          <CheckoutForm priceCents={course.price_cents} />
-        </Elements>
+        <PaytmCheckoutEmbed
+          orderId={paytmConfig.orderId}
+          amount={paytmConfig.amount}
+          action={paytmConfig.action}
+          fields={paytmConfig.fields}
+        />
       </div>
     );
   }
@@ -117,7 +112,7 @@ export function GiftCheckoutClient({ course }: { course: Course }) {
       <div className="rounded-xl border border-cream-200 bg-cream-100 p-4 font-sans text-sm text-clove-600">
         <span className="font-semibold text-clove-700">{course.title}</span>
         {" · "}
-        <span className="font-semibold">{formatDollars(course.price_cents)}</span>
+        <span className="font-semibold">{formatRupees(course.price_cents)}</span>
         {" · "}
         {course.recipe_count} recipes — instant email delivery to recipient
       </div>
@@ -130,12 +125,12 @@ export function GiftCheckoutClient({ course }: { course: Course }) {
         className="flex h-12 items-center justify-center gap-2 rounded-xl bg-saffron-400 font-sans text-[15px] font-semibold text-clove-700 hover:bg-saffron-500 disabled:opacity-60"
       >
         <Gift className="size-4" aria-hidden />
-        {loading ? "Loading…" : `Gift for ${formatDollars(course.price_cents)}`}
+        {loading ? "Loading…" : `Gift for ${formatRupees(course.price_cents)}`}
       </button>
 
       <p className="flex items-center justify-center gap-1.5 font-sans text-xs text-clove-400">
         <Lock className="size-3" aria-hidden />
-        Secure checkout · Stripe
+        Secure checkout · Paytm
       </p>
     </form>
   );

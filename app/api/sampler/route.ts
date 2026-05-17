@@ -14,7 +14,7 @@ const SamplerSchema = z.object({
   name: z.string().max(100).optional(),
 });
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://spiceandsoul.com";
+const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://hakeemrestro.shop";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -79,10 +79,10 @@ export async function POST(req: NextRequest) {
         });
 
         await resend.emails.send({
-          from: "Spice & Soul Academy <hello@spiceandsoul.com>",
-          replyTo: "support@spiceandsoul.com",
+          from: "Spice & Soul Academy <hello@hakeemrestro.shop>",
+          replyTo: "hakeemrestro@gmail.com",
           to: email,
-          subject: "Your free Indian cooking sampler — 3 recipes from Hakeem's",
+          subject: "Your free Indian cooking sampler — 3 recipes from Hakeem",
           react: createElement(SamplerEmail, {
             name,
             coursesUrl: `${BASE}/courses`,

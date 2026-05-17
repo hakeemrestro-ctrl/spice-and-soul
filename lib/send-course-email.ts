@@ -93,8 +93,8 @@ export async function sendCourseEmail(input: SendCourseEmailInput): Promise<void
       : recipes.length || course.recipe_count;
 
   await resend.emails.send({
-    from: "Spice & Soul Academy <hello@spiceandsoul.com>",
-    replyTo: "support@spiceandsoul.com",
+    from: "Spice & Soul Academy <hello@hakeemrestro.shop>",
+    replyTo: "hakeemrestro@gmail.com",
     to: customerEmail,
     subject: gift
       ? `${gift.senderName} sent you a gift — ${course.title}`

@@ -52,7 +52,7 @@ export default async function BlogPostPage({ params }: Props) {
     publisher: {
       "@type": "Organization",
       name: "Spice & Soul Academy",
-      url: process.env.NEXT_PUBLIC_APP_URL ?? "https://spiceandsoul.com",
+      url: process.env.NEXT_PUBLIC_APP_URL ?? "https://hakeemrestro.shop",
     },
   };
 

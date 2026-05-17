@@ -2,7 +2,7 @@
 
 # Spice & Soul Academy
 
-Indian cooking courses e-commerce platform for Hakeem's Restaurant, Indore. Sells curated recipe courses + a 5-course bundle, delivered instantly as PDFs via email. **No customer accounts** — purchase is email-only and PDFs can be re-sent anytime via `/resend`.
+Indian cooking courses e-commerce platform for Hakeem Restaurant, Bhopal. Sells curated recipe courses + a 5-course bundle, delivered instantly as PDFs via email. **No customer accounts** — purchase is email-only and PDFs can be re-sent anytime via `/resend`.
 
 ## Tech Stack
 
@@ -26,7 +26,7 @@ spice-and-soul/
 │   │   ├── page.tsx          # Homepage
 │   │   ├── courses/          # Course listing + detail
 │   │   ├── checkout/         # Two-step checkout (contact → Stripe Elements)
-│   │   ├── restaurant/       # Hakeem's restaurant page
+│   │   ├── restaurant/       # Hakeem restaurant page
 │   │   ├── thank-you/        # Post-payment confirmation
 │   │   └── resend/           # Email-only "re-send my PDFs" flow (no login)
 │   ├── admin/

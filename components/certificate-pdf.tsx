@@ -133,7 +133,7 @@ export function CertificatePdf({ customerName, courseTitle, issuedDate, certific
           <Text style={styles.eyebrow}>Certificate of Enrollment</Text>
 
           <Text style={styles.brand}>Spice &amp; Soul Academy</Text>
-          <Text style={styles.brandSub}>by Hakeem&apos;s · Indore</Text>
+          <Text style={styles.brandSub}>by Hakeem · Bhopal</Text>
 
           <Text style={styles.certTitle}>This certifies that</Text>
 
@@ -162,7 +162,7 @@ export function CertificatePdf({ customerName, courseTitle, issuedDate, certific
           <View style={styles.signature}>
             <View style={styles.signatureLine} />
             <Text style={styles.signerName}>Chef Hakeem</Text>
-            <Text style={styles.signerTitle}>Head Chef &amp; Founder, Hakeem&apos;s Restaurant</Text>
+            <Text style={styles.signerTitle}>Head Chef &amp; Founder, Hakeem Restaurant</Text>
           </View>
         </View>
       </Page>

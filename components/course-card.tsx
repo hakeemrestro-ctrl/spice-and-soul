@@ -1,7 +1,14 @@
 import Link from "next/link";
 import Image from "next/image";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Check } from "lucide-react";
 import type { Course } from "@/types";
+
+const STATIC_FEATURES = [
+  "Lifetime access — yours forever",
+  "Instant email delivery",
+  "Re-send PDFs anytime",
+  "PDF invoice included",
+];
 
 type Props = {
   course: Course;
@@ -10,6 +17,10 @@ type Props = {
   /** Cents-equivalent of the original (pre-bundle) price. Only used when course.is_bundle. */
   bundleOriginalCents?: number;
   isBestseller?: boolean;
+  /** Pass true for above-the-fold cards to avoid LCP lazy-load penalty. */
+  priority?: boolean;
+  /** Render description excerpt + feature checklist inside the card footer. */
+  showFeatures?: boolean;
 };
 
 const GRADIENTS = [
@@ -25,16 +36,14 @@ function pickGradient(slug: string): string {
   return GRADIENTS[code % GRADIENTS.length];
 }
 
-function formatDollars(cents: number): string {
-  const dollars = cents / 100;
-  return dollars % 1 === 0
-    ? `$${dollars.toLocaleString("en-US")}`
-    : `$${dollars.toFixed(2)}`;
+function formatRupees(paise: number): string {
+  const rupees = paise / 100;
+  return `₹${rupees.toLocaleString("en-IN")}`;
 }
 
-export function CourseCard({ course, bundleSavingsCents, bundleOriginalCents, isBestseller }: Props) {
+export function CourseCard({ course, bundleSavingsCents, bundleOriginalCents, isBestseller = false, priority = false, showFeatures = false }: Props) {
   const isBundle = course.is_bundle;
-  const priceDisplay = formatDollars(course.price_cents);
+  const priceDisplay = formatRupees(course.price_cents);
   const glyph = course.title.replace(/^[^a-zA-Z]*/, "").charAt(0).toUpperCase() || "·";
 
   return (
@@ -48,7 +57,7 @@ export function CourseCard({ course, bundleSavingsCents, bundleOriginalCents, is
     >
       {isBundle && bundleSavingsCents != null && bundleSavingsCents > 0 && (
         <div className="absolute right-3.5 top-3.5 z-[2] whitespace-nowrap rounded-full bg-saffron-400 px-2.5 py-1 font-sans text-[10px] font-bold uppercase tracking-[0.12em] text-clove-700">
-          Save {formatDollars(bundleSavingsCents)}
+          Save {formatRupees(bundleSavingsCents)}
         </div>
       )}
       {!isBundle && isBestseller && (
@@ -69,6 +78,7 @@ export function CourseCard({ course, bundleSavingsCents, bundleOriginalCents, is
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="object-cover transition-transform duration-300 group-hover:scale-105"
+            priority={priority}
           />
         ) : isBundle ? (
           <div className="select-none font-display text-5xl italic leading-none text-cream-50">
@@ -102,7 +112,7 @@ export function CourseCard({ course, bundleSavingsCents, bundleOriginalCents, is
             {priceDisplay}
             {isBundle && bundleOriginalCents != null && bundleOriginalCents > course.price_cents && (
               <span className="ml-2 text-sm font-normal text-clove-300 line-through">
-                {formatDollars(bundleOriginalCents)}
+                {formatRupees(bundleOriginalCents)}
               </span>
             )}
           </div>
@@ -111,6 +121,24 @@ export function CourseCard({ course, bundleSavingsCents, bundleOriginalCents, is
             {course.recipe_count} recipes
           </div>
         </div>
+
+        {showFeatures && (
+          <>
+            {course.description && (
+              <p className="mt-3 font-sans text-[13.5px] leading-relaxed text-clove-500 line-clamp-3">
+                {course.description}
+              </p>
+            )}
+            <ul className="mt-3 space-y-1.5 border-t border-cream-200 pt-3">
+              {[`${course.recipe_count} authentic recipes`, ...STATIC_FEATURES].map((f) => (
+                <li key={f} className="flex items-center gap-2 font-sans text-[13px] text-clove-500">
+                  <Check className="size-3.5 shrink-0 text-cardamom-600" aria-hidden />
+                  {f}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </div>
     </Link>
   );

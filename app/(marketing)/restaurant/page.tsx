@@ -14,18 +14,18 @@ import {
 import { ReservationForm } from "@/components/reservation-form";
 
 export const metadata: Metadata = {
-  title: "Hakeem's Restaurant — Authentic Indian Cuisine · Indore",
+  title: "Hakeem Restaurant — Authentic Indian Cuisine · Bhopal",
   description:
-    "Hakeem's Restaurant in Indore serves generations-old authentic Indian cuisine. Slow-cooked dals, signature biryanis, tandoor specialities, and royal Mughlai dishes.",
+    "Hakeem Restaurant in Bhopal serves generations-old authentic Indian cuisine. Slow-cooked dals, signature biryanis, tandoor specialities, and royal Mughlai dishes.",
 };
 
 const DISHES = [
   {
-    name: "Hakeem's Dum Biryani",
+    name: "Hakeem Dum Biryani",
     tag: "House Signature",
     tagVariant: "saffron" as const,
     description:
-      "Aged basmati rice slow-cooked in a sealed deg with saffron, caramelised onions, and our 48-hour marinated protein. The recipe hasn't changed since 1987.",
+      "Aged basmati rice slow-cooked in a sealed deg with saffron, caramelised onions, and our 48-hour marinated protein. The recipe hasn't changed since 1971.",
     detail: "Serves 1 · Gluten-free · Dum-cooked 3 hrs",
     icon: Flame,
     courseSlug: "biryani-rice-dishes",
@@ -97,16 +97,16 @@ const TAG_STYLES = {
 const RESTAURANT_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Restaurant",
-  name: "Hakeem's Restaurant",
+  name: "Hakeem Restaurant",
   description:
-    "Three generations of kitchen wisdom. Heritage Mughlai recipes, slow-cooked biryanis, and tandoor classics in Indore since 1987.",
-  url: "https://spiceandsoul.com/restaurant",
-  telephone: "+917312456789",
+    "Three generations of kitchen wisdom. Heritage Mughlai recipes, slow-cooked biryanis, and tandoor classics in Bhopal since 1971.",
+  url: "https://hakeemrestro.shop/restaurant",
+  telephone: "+917552456789",
   servesCuisine: ["Indian", "Mughlai", "North Indian"],
   priceRange: "₹₹",
   address: {
     "@type": "PostalAddress",
-    addressLocality: "Indore",
+    addressLocality: "Bhopal",
     addressRegion: "Madhya Pradesh",
     addressCountry: "IN",
   },
@@ -171,20 +171,20 @@ export default function RestaurantPage() {
 
         <div className="relative z-10 mx-auto max-w-3xl">
           <div className="eyebrow mb-5 text-saffron-400">
-            INDORE · MADHYA PRADESH
+            BHOPAL · MADHYA PRADESH
           </div>
           <h1 className="mb-3 font-display text-[clamp(54px,8vw,88px)] leading-[1.04] tracking-tight text-cream-50">
-            Hakeem&apos;s
+            Hakeem
           </h1>
           <p className="mb-7 font-display text-2xl italic text-saffron-300">
             Authentic Indian Restaurant
           </p>
           <p className="mx-auto mb-10 max-w-xl font-sans text-base leading-relaxed text-clove-300">
-            Three generations of kitchen wisdom. Heritage Mughlai recipes, slow-cooked biryanis, and tandoor classics — served in the heart of Indore since 1987.
+            Three generations of kitchen wisdom. Heritage Mughlai recipes, slow-cooked biryanis, and tandoor classics — served in the heart of Bhopal since 1971.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <a
-              href="tel:+917312456789"
+              href="tel:+917552456789"
               className="inline-flex h-12 items-center gap-2 rounded-xl bg-saffron-400 px-7 font-sans text-base font-semibold text-clove-900 transition-colors hover:bg-saffron-500"
             >
               <Phone className="size-4" />
@@ -210,9 +210,9 @@ export default function RestaurantPage() {
               <span className="ml-1 text-clove-300">4.8 · 2,400+ reviews</span>
             </span>
             <span className="hidden sm:block text-clove-700">·</span>
-            <span>Est. 1987 · 37 years of excellence</span>
+            <span>Est. 1971 · 55 years of excellence</span>
             <span className="hidden sm:block text-clove-700">·</span>
-            <span>NK Ventures</span>
+            <span>N K VENTURES</span>
           </div>
         </div>
       </section>
@@ -229,10 +229,10 @@ export default function RestaurantPage() {
               </h2>
               <div className="space-y-4 font-sans text-base leading-relaxed text-clove-600">
                 <p>
-                  Hakeem&apos;s began in 1987 when Ustad Hakeem opened a small corner kitchen in Indore&apos;s Chappan Dukan — a single clay oven, a handful of hand-ground masalas, and recipes passed down four generations from a royal kitchen in Lucknow.
+                  Hakeem began in 1971 when Ustad Hakeem opened a small corner kitchen in Bhopal&apos;s Chowk Bazaar — a single clay oven, a handful of hand-ground masalas, and recipes passed down four generations from a royal kitchen in Lucknow.
                 </p>
                 <p>
-                  Today, under Naveed Khan and NK Ventures, Hakeem&apos;s carries that same spirit — the long slow cook, the respect for a single spice, the refusal to hurry what cannot be hurried. We still grind our own masalas. We still use the same dum method.
+                  Today, under Naveed Khan and N K VENTURES, Hakeem carries that same spirit — the long slow cook, the respect for a single spice, the refusal to hurry what cannot be hurried. We still grind our own masalas. We still use the same dum method.
                 </p>
                 <p>
                   The Spice &amp; Soul Academy was born from this kitchen — so every student can carry these techniques home.
@@ -259,10 +259,10 @@ export default function RestaurantPage() {
                     H
                   </div>
                   <div className="font-display text-4xl italic text-cream-50">
-                    Hakeem&apos;s
+                    Hakeem
                   </div>
                   <div className="mt-2 font-sans text-sm text-clove-300">
-                    Indore · Since 1987
+                    Bhopal · Since 1971
                   </div>
                   <div className="mx-auto mt-8 max-w-xs space-y-3 text-left">
                     {[
@@ -352,7 +352,7 @@ export default function RestaurantPage() {
             <span className="italic text-paprika-600">A tradition.</span>
           </h2>
           <p className="mx-auto mb-14 max-w-2xl font-sans text-base leading-relaxed text-clove-600">
-            Hakeem&apos;s seats 60 guests across two intimate rooms — the open kitchen counter and the private dining hall. We do not rush tables. A meal here is meant to last, linger, and leave you with something to talk about on the drive home.
+            Hakeem seats 60 guests across two intimate rooms — the open kitchen counter and the private dining hall. We do not rush tables. A meal here is meant to last, linger, and leave you with something to talk about on the drive home.
           </p>
 
           <div className="grid gap-8 sm:grid-cols-3">
@@ -365,7 +365,7 @@ export default function RestaurantPage() {
               {
                 icon: Leaf,
                 title: "Seasonal Produce",
-                body: "Spices sourced from Khari Baoli, Delhi. Vegetables from Indore mandis, same-morning. Nothing from a packet. Nothing frozen.",
+                body: "Spices sourced from Khari Baoli, Delhi. Vegetables from Bhopal mandis, same-morning. Nothing from a packet. Nothing frozen.",
               },
               {
                 icon: UtensilsCrossed,
@@ -391,7 +391,7 @@ export default function RestaurantPage() {
           <div className="mb-12 text-center">
             <div className="eyebrow mb-4">FIND US</div>
             <h2 className="font-display text-[clamp(28px,3.5vw,44px)] leading-tight text-clove-800">
-              We&apos;re in Indore.{" "}
+              We&apos;re in Bhopal.{" "}
               <span className="italic text-clove-500">Come hungry.</span>
             </h2>
           </div>
@@ -410,7 +410,7 @@ export default function RestaurantPage() {
                   <address className="not-italic font-sans text-sm leading-relaxed text-clove-700">
                     34, Siyaganj Market Road<br />
                     Near Rajwada Chowk<br />
-                    Indore, Madhya Pradesh — 452 001<br />
+                    Bhopal, Madhya Pradesh — 462 001<br />
                     India
                   </address>
                 </div>
@@ -425,7 +425,7 @@ export default function RestaurantPage() {
                     Reservations
                   </div>
                   <a
-                    href="tel:+917312456789"
+                    href="tel:+917552456789"
                     className="font-sans text-sm text-clove-700 no-underline hover:text-saffron-600"
                   >
                     +91 731 245 6789
@@ -448,7 +448,7 @@ export default function RestaurantPage() {
                   </div>
                   <div>
                     <dt className="text-clove-400">Company</dt>
-                    <dd className="mt-0.5 font-medium text-clove-700">NK Ventures</dd>
+                    <dd className="mt-0.5 font-medium text-clove-700">N K VENTURES</dd>
                   </div>
                   <div className="col-span-2">
                     <dt className="text-clove-400">GST Registration</dt>
@@ -515,7 +515,7 @@ export default function RestaurantPage() {
           <p className="mb-10 font-sans text-base leading-relaxed text-clove-300">
             Fill in your details and we&apos;ll confirm your reservation by phone or email. Or call us
             directly at{" "}
-            <a href="tel:+917312456789" className="text-saffron-400 no-underline hover:underline">
+            <a href="tel:+917552456789" className="text-saffron-400 no-underline hover:underline">
               +91 731 245 6789
             </a>
             .
@@ -541,7 +541,7 @@ export default function RestaurantPage() {
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <a
-              href="tel:+917312456789"
+              href="tel:+917552456789"
               className="inline-flex h-12 items-center gap-2 rounded-xl bg-saffron-400 px-8 font-sans text-base font-semibold text-clove-900 transition-colors hover:bg-saffron-500"
             >
               <Phone className="size-4" />

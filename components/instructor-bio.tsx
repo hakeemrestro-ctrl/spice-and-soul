@@ -14,7 +14,7 @@ type Props = {
 const DEFAULT_INSTRUCTOR = {
   name: "Ustad Hakeem",
   credential: "Master Cook · 30+ years across Lucknow, Delhi & Hyderabad",
-  bio: "Ustad Hakeem began cooking in his family kitchen in 1987. After three decades across Lucknow, Delhi, and Hyderabad's most exacting kitchens, his recipes are now passed to home cooks worldwide — every measurement, every patience-test, every spice ratio preserved.",
+  bio: "Ustad Hakeem began cooking in his family kitchen in 1971. After three decades across Lucknow, Delhi, and Hyderabad's most exacting kitchens, his recipes are now passed to home cooks worldwide — every measurement, every patience-test, every spice ratio preserved.",
 };
 
 export function InstructorBio({

@@ -1,3 +1,5 @@
+export const revalidate = 3600; // ISR: re-render at most once per hour
+
 import Link from "next/link";
 import { BookOpen, Mail, Infinity as InfinityIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -84,12 +86,6 @@ export default async function HomePage() {
               render={<Link href="/courses">Browse All Courses</Link>}
               nativeButton={false}
             />
-            <Button
-              variant="outline"
-              size="xl"
-              render={<Link href="/courses/bundle-all-5">Get the Bundle — $1,999</Link>}
-              nativeButton={false}
-            />
           </div>
           <p className="mt-8 font-sans text-sm text-clove-500 motion-safe:animate-fade-in motion-safe:delay-375">
             <span className="text-saffron-500">★</span> 4.9 from 1,200+ home cooks · Instant email delivery · Lifetime access
@@ -116,7 +112,7 @@ export default async function HomePage() {
                           "motion-safe:delay-225"
               }`}
             >
-              <CourseCard course={course} />
+              <CourseCard course={course} priority={i === 0} showFeatures />
             </div>
           ))}
         </div>

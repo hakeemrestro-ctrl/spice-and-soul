@@ -4,7 +4,6 @@ import Link from "next/link";
 const LINKS = [
   { href: "/", label: "Home" },
   { href: "/courses", label: "Courses" },
-  { href: "/restaurant", label: "Restaurant" },
   { href: "/resend", label: "Re-send PDFs" },
 ];
 
@@ -29,7 +28,7 @@ export function SiteFooter() {
                   Spice <span className="text-saffron-300">&amp;</span> Soul Academy
                 </div>
                 <div className="font-sans text-[9px] italic text-clove-400 tracking-wide">
-                  by Hakeem&apos;s
+                  by Hakeem
                 </div>
               </div>
             </div>
@@ -69,7 +68,12 @@ export function SiteFooter() {
               </div>
               <div>
                 <dt className="text-[10px] uppercase tracking-wider text-clove-500">Company</dt>
-                <dd className="mt-0.5 text-clove-200">NK Ventures</dd>
+                <dd className="mt-0.5 text-clove-200">N K VENTURES</dd>
+                <dd className="mt-0.5 text-clove-400 text-[11px] leading-relaxed">
+                  Shop No. 03, Plot No. 84,<br />
+                  MP Nagar Zone II, Bhopal,<br />
+                  Madhya Pradesh — 462016
+                </dd>
               </div>
               <div>
                 <dt className="text-[10px] uppercase tracking-wider text-clove-500">GST No.</dt>
@@ -78,12 +82,12 @@ export function SiteFooter() {
                 </dd>
               </div>
               <div>
-                <dt className="text-[10px] uppercase tracking-wider text-clove-500">Restaurant</dt>
-                <dd className="mt-0.5 text-clove-200">
-                  <Link href="/restaurant" className="no-underline hover:text-cream-50 transition-colors">
-                    Hakeem&apos;s · Indore, MP
-                  </Link>
-                </dd>
+                <dt className="text-[10px] uppercase tracking-wider text-clove-500">Phone</dt>
+                <dd className="mt-0.5 text-clove-200">+91 9406565799</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] uppercase tracking-wider text-clove-500">Email</dt>
+                <dd className="mt-0.5 text-clove-200">hakeemrestro@gmail.com</dd>
               </div>
             </dl>
           </div>
@@ -104,7 +108,7 @@ export function SiteFooter() {
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="font-sans text-xs text-clove-500">
-              © 2026 NK Ventures · Spice &amp; Soul Academy by Hakeem&apos;s · All rights reserved.
+              © 2026 N K VENTURES · Spice &amp; Soul Academy by Hakeem · All rights reserved.
             </p>
             <p className="font-sans text-xs text-clove-600">
               Made with care, in a kitchen.

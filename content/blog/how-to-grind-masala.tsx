@@ -24,7 +24,7 @@ export default function Post() {
         You use less. The result is cleaner, brighter.
       </p>
 
-      <h2>The Hakeem&apos;s method: dry roast, then grind</h2>
+      <h2>The Hakeem method: dry roast, then grind</h2>
       <p>
         Heat a heavy-bottomed pan — cast iron or carbon steel — over medium flame. Add whole
         spices: cumin seeds, coriander seeds, a small stick of cassia bark, four cardamom

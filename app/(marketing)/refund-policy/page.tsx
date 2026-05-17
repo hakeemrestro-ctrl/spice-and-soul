@@ -23,7 +23,7 @@ export default function RefundPolicyPage() {
           <h2 className="mb-2 font-display text-xl text-clove-700">How to request a refund</h2>
           <ol className="list-decimal pl-5 space-y-2">
             <li>
-              Email <strong>support@spiceandsoul.com</strong> with the subject line
+              Email <strong>hakeemrestro@gmail.com</strong> or call <strong>+91 9406565799</strong> with the subject line
               &ldquo;Refund Request&rdquo;
             </li>
             <li>Include the email address used at checkout and your order/invoice number</li>
@@ -55,7 +55,11 @@ export default function RefundPolicyPage() {
         <section>
           <h2 className="mb-2 font-display text-xl text-clove-700">Contact</h2>
           <p>
-            <strong>support@spiceandsoul.com</strong>
+            <strong>hakeemrestro@gmail.com</strong>
+            <br />
+            Phone: <strong>+91 9406565799</strong>
+            <br />
+            N K VENTURES, Shop No. 03, Plot No. 84, MP Nagar Zone II, Bhopal, Madhya Pradesh — 462016
           </p>
         </section>
       </div>

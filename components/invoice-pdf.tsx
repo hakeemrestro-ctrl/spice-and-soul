@@ -52,14 +52,15 @@ export function InvoicePdf({
   last4,
   accessUrl,
 }: Props) {
-  const priceFormatted = `$${(priceCents / 100).toFixed(2)}`;
+  const rupees = priceCents / 100;
+  const priceFormatted = `₹${rupees.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <Text style={styles.logo}>Spice & Soul Academy</Text>
-          <Text style={styles.subtitle}>spiceandsoul.com</Text>
+          <Text style={styles.subtitle}>hakeemrestro.shop</Text>
         </View>
 
         <Text style={styles.invoiceNumber}>Invoice #{invoiceNumber}</Text>

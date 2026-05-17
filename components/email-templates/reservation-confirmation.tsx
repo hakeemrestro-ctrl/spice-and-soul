@@ -14,12 +14,12 @@ export function ReservationConfirmationEmail({ guestName, partySize, preferredDa
   return (
     <Html lang="en">
       <Head />
-      <Preview>Reservation request received — Hakeem&apos;s Restaurant</Preview>
+      <Preview>Reservation request received — Hakeem Restaurant</Preview>
       <Body style={{ backgroundColor: "#fafaf9", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", margin: "0", padding: "0" }}>
         <Container style={{ backgroundColor: "#ffffff", margin: "40px auto", maxWidth: "520px", borderRadius: "8px", overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
           <Section style={{ backgroundColor: "#3e2c19", padding: "24px 40px" }}>
             <Text style={{ color: "#f59e0b", fontSize: "20px", fontWeight: "700", margin: "0" }}>
-              Hakeem&apos;s Restaurant
+              Hakeem Restaurant
             </Text>
             <Text style={{ color: "#d4a96a", fontSize: "11px", letterSpacing: "2px", textTransform: "uppercase", margin: "4px 0 0" }}>
               By Spice &amp; Soul Academy
@@ -61,7 +61,7 @@ export function ReservationConfirmationEmail({ guestName, partySize, preferredDa
           <Hr style={{ borderColor: "#e7e5e4", margin: "0 40px" }} />
           <Section style={{ padding: "20px 40px" }}>
             <Text style={{ fontSize: "13px", color: "#a8a29e", margin: "0" }}>
-              — The team at Hakeem&apos;s Restaurant, Indore
+              — The team at Hakeem Restaurant, Bhopal
             </Text>
           </Section>
         </Container>

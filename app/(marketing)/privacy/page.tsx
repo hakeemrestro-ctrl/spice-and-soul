@@ -14,9 +14,10 @@ export default function PrivacyPage() {
         <section>
           <h2 className="mb-2 font-display text-xl text-clove-700">1. Who we are</h2>
           <p>
-            Spice &amp; Soul Academy is operated by NK Ventures, a business registered in
-            Indore, Madhya Pradesh, India (GST: 23CNEPK6523K1ZZ). References to
-            &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo; mean NK Ventures.
+            Spice &amp; Soul Academy is operated by N K VENTURES, a business registered in
+            Bhopal, Madhya Pradesh, India (GST: 23CNEPK6523K1ZZ). Registered address: Shop No. 03,
+            Plot No. 84, MP Nagar Zone II, Bhopal, Madhya Pradesh — 462016. References to
+            &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo; mean N K VENTURES.
           </p>
         </section>
 
@@ -25,7 +26,7 @@ export default function PrivacyPage() {
           <p>When you purchase a course we collect:</p>
           <ul className="mt-2 list-disc pl-5 space-y-1">
             <li>Your name and email address (entered at checkout)</li>
-            <li>Payment details — processed and stored by Stripe; we never see or store full card numbers</li>
+            <li>Payment details — processed and stored by Paytm Payment Services Pvt. Ltd.; we never see or store card numbers, UPI IDs, or wallet credentials</li>
             <li>Purchase record (course, amount, date) for invoicing and customer support</li>
           </ul>
         </section>
@@ -44,7 +45,7 @@ export default function PrivacyPage() {
         <section>
           <h2 className="mb-2 font-display text-xl text-clove-700">4. Third-party services</h2>
           <ul className="list-disc pl-5 space-y-1">
-            <li><strong>Stripe</strong> — payment processing (stripe.com/privacy)</li>
+            <li><strong>Paytm Payment Services Pvt. Ltd.</strong> — payment processing (paytm.com/about-us/privacy-policy)</li>
             <li><strong>Resend</strong> — transactional email delivery (resend.com/privacy)</li>
             <li><strong>Supabase</strong> — database hosting on AWS infrastructure (supabase.com/privacy)</li>
           </ul>
@@ -70,7 +71,12 @@ export default function PrivacyPage() {
         <section>
           <h2 className="mb-2 font-display text-xl text-clove-700">7. Contact</h2>
           <p>
-            Questions about this policy: <strong>privacy@spiceandsoul.com</strong>
+            Questions about this policy:{" "}
+            <strong>hakeemrestro@gmail.com</strong>
+            <br />
+            Phone: <strong>+91 9406565799</strong>
+            <br />
+            N K VENTURES, Shop No. 03, Plot No. 84, MP Nagar Zone II, Bhopal, Madhya Pradesh — 462016
           </p>
         </section>
       </div>

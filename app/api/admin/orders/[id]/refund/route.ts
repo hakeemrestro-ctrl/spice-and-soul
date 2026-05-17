@@ -1,15 +1,25 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { PAYTM, generateSignature, paiseToTxnAmount } from "@/lib/paytm";
 
+/**
+ * Paytm refund flow:
+ *   POST https://{host}/refund/apply
+ *   body: { mid, txnType: "REFUND", orderId, txnId, refId, refundAmount, comments }
+ *   head: { signature, clientId: "C11", version: "v1" }
+ *
+ * Docs: https://business.paytm.com/docs/refund
+ *
+ * We look up the original `pending_orders.order_id` from `pending_orders.txn_id`
+ * because the original `orderId` Paytm requires is OUR orderId, not the TXNID.
+ */
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  // Auth: require signed-in admin
   const ssr = await createClient();
   const {
     data: { user },
@@ -32,7 +42,7 @@ export async function POST(
 
   const { data: order } = await supabase
     .from("orders")
-    .select("id, status, stripe_payment_intent_id, parent_order_id")
+    .select("id, status, stripe_payment_intent_id, amount_cents, parent_order_id")
     .eq("id", id)
     .single();
 
@@ -52,22 +62,65 @@ export async function POST(
     );
   }
 
+  const txnId = order.stripe_payment_intent_id;
+
+  // Recover original Paytm orderId from pending_orders
+  const { data: pending } = await supabase
+    .from("pending_orders")
+    .select("order_id")
+    .eq("txn_id", txnId)
+    .single();
+
+  if (!pending) {
+    return NextResponse.json(
+      { error: "Original Paytm orderId not found — cannot refund." },
+      { status: 400 },
+    );
+  }
+
+  const refundBody = {
+    mid: PAYTM.mid,
+    txnType: "REFUND",
+    orderId: pending.order_id,
+    txnId,
+    refId: `REF_${order.id.slice(0, 8)}_${Date.now()}`,
+    refundAmount: paiseToTxnAmount(order.amount_cents),
+    comments: "Customer refund",
+  };
+  const signature = await generateSignature(JSON.stringify(refundBody));
+
+  let paytmResp: {
+    body?: { resultInfo?: { resultStatus?: string; resultCode?: string; resultMsg?: string } };
+  };
+
   try {
-    await stripe.refunds.create({
-      payment_intent: order.stripe_payment_intent_id,
+    const res = await fetch(`https://${PAYTM.host}/refund/apply`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        body: refundBody,
+        head: { signature, clientId: "C11", version: "v1" },
+      }),
     });
+    paytmResp = await res.json();
   } catch (err) {
-    console.error("Stripe refund failed:", err);
-    const msg = err instanceof Error ? err.message : "Refund failed";
+    console.error("Paytm refund network error:", err);
+    return NextResponse.json({ error: "Payment provider unreachable" }, { status: 502 });
+  }
+
+  const status = paytmResp.body?.resultInfo?.resultStatus;
+  // Paytm refund returns "TXN_SUCCESS" immediate-refund, "PENDING" or "ACCEPTED" for async
+  if (status !== "TXN_SUCCESS" && status !== "PENDING" && status !== "ACCEPTED") {
+    const msg = paytmResp.body?.resultInfo?.resultMsg ?? "Refund rejected";
+    console.error("Paytm refund failed:", paytmResp.body?.resultInfo);
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 
-  // charge.refunded webhook will mark all rows refunded; flip status now too
-  // so the admin UI updates immediately.
+  // Mark all related order rows refunded (parent + bundle children)
   await supabase
     .from("orders")
     .update({ status: "refunded" })
-    .eq("stripe_payment_intent_id", order.stripe_payment_intent_id);
+    .eq("stripe_payment_intent_id", txnId);
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, paytm: paytmResp.body?.resultInfo });
 }

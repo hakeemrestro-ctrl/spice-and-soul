@@ -4,45 +4,14 @@ import { useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Lock, Check, ShieldCheck, Star, Tag } from "lucide-react";
-import { loadStripe, type StripeElementsOptions } from "@stripe/stripe-js";
-import { Elements } from "@stripe/react-stripe-js";
-import CheckoutForm from "@/components/checkout-form";
+import PaytmCheckoutEmbed from "@/components/paytm-checkout-embed";
 import { Button } from "@/components/ui/button";
 import { trackEvent } from "@/lib/plausible";
 import type { Course } from "@/types";
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
-
-const stripeAppearance: StripeElementsOptions["appearance"] = {
-  theme: "stripe",
-  variables: {
-    colorPrimary: "#f29b1f",
-    colorBackground: "#ffffff",
-    colorText: "#3e2c19",
-    colorDanger: "#a13818",
-    fontFamily: "Geist, system-ui, sans-serif",
-    borderRadius: "12px",
-    spacingUnit: "4px",
-  },
-  rules: {
-    ".Input": {
-      border: "1px solid #ddc9af",
-      padding: "11px 13px",
-      boxShadow: "none",
-    },
-    ".Input:focus": {
-      border: "2px solid #f29b1f",
-      boxShadow: "0 0 0 4px rgba(242,155,31,0.20)",
-    },
-    ".Label": { color: "#281a0d", fontWeight: "500" },
-  },
-};
-
-function formatDollars(cents: number): string {
-  const dollars = cents / 100;
-  return dollars % 1 === 0
-    ? `$${dollars.toLocaleString("en-US")}`
-    : `$${dollars.toFixed(2)}`;
+function formatRupees(paise: number): string {
+  const rupees = paise / 100;
+  return `₹${rupees.toLocaleString("en-IN")}`;
 }
 
 const FEATURES = [
@@ -64,8 +33,16 @@ type CouponResult = {
   finalCents: number;
 };
 
+type PaytmConfig = {
+  orderId: string;
+  mid: string;
+  amount: string;
+  action: string;
+  fields: Record<string, string>;
+};
+
 export default function CheckoutPageClient({ course }: { course: Course }) {
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [paytmConfig, setPaytmConfig] = useState<PaytmConfig | null>(null);
   const [contactInfo, setContactInfo] = useState<{ email: string; name: string } | null>(null);
   const [appliedCoupon, setAppliedCoupon] = useState<CouponResult | null>(null);
 
@@ -82,7 +59,7 @@ export default function CheckoutPageClient({ course }: { course: Course }) {
       utmTerm: params.get("utm_term") ?? undefined,
     };
 
-    const res = await fetch("/api/checkout", {
+    const res = await fetch("/api/paytm/initiate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -92,14 +69,20 @@ export default function CheckoutPageClient({ course }: { course: Course }) {
         ...(couponCode ? { couponCode } : {}),
         ...(utmFields.utmSource ? { acquisitionSource: utmFields.utmSource } : {}),
         ...Object.fromEntries(
-          Object.entries(utmFields).filter(([, v]) => v !== undefined)
+          Object.entries(utmFields).filter(([, v]) => v !== undefined),
         ),
       }),
     });
     const data = await res.json();
-    if (data.clientSecret) {
+    if (data.orderId && data.action && data.fields && data.amount) {
       setContactInfo({ email, name });
-      setClientSecret(data.clientSecret);
+      setPaytmConfig({
+        orderId: data.orderId,
+        mid: data.mid,
+        amount: data.amount,
+        action: data.action,
+        fields: data.fields,
+      });
       trackEvent("checkout_started", { course: course.title });
     } else {
       throw new Error(data.error ?? "Checkout failed");
@@ -124,34 +107,34 @@ export default function CheckoutPageClient({ course }: { course: Course }) {
             {course.title}
           </h1>
           <p className="mb-8 font-sans text-[15px] text-clove-500">
-            {clientSecret && contactInfo?.email ? `${contactInfo.email} · ` : ""}
+            {paytmConfig && contactInfo?.email ? `${contactInfo.email} · ` : ""}
             {appliedCoupon ? (
               <>
-                <span className="line-through text-clove-300">{formatDollars(course.price_cents)}</span>
+                <span className="line-through text-clove-300">{formatRupees(course.price_cents)}</span>
                 {" "}
-                <span className="font-semibold text-cardamom-600">{formatDollars(appliedCoupon.finalCents)}</span>
+                <span className="font-semibold text-cardamom-600">{formatRupees(appliedCoupon.finalCents)}</span>
                 <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-cardamom-100 px-2 py-0.5 text-xs font-medium text-cardamom-700">
                   <Tag className="size-3" aria-hidden />
                   {appliedCoupon.code}
                 </span>
               </>
-            ) : formatDollars(course.price_cents)}
+            ) : formatRupees(course.price_cents)}
             {" "}· {course.recipe_count} recipes
           </p>
 
-          {!clientSecret ? (
+          {!paytmConfig ? (
             <ContactForm
               courseId={course.id}
               onSubmit={handleContactSubmit}
               onCouponApplied={setAppliedCoupon}
             />
           ) : (
-            <Elements
-              stripe={stripePromise}
-              options={{ clientSecret, appearance: stripeAppearance }}
-            >
-              <CheckoutForm priceCents={course.price_cents} />
-            </Elements>
+            <PaytmCheckoutEmbed
+              orderId={paytmConfig.orderId}
+              amount={paytmConfig.amount}
+              action={paytmConfig.action}
+              fields={paytmConfig.fields}
+            />
           )}
         </div>
 
@@ -186,11 +169,11 @@ export default function CheckoutPageClient({ course }: { course: Course }) {
               <div className="mb-5 font-display text-4xl leading-none text-clove-700">
                 {appliedCoupon ? (
                   <>
-                    <span className="text-2xl line-through text-clove-300">{formatDollars(course.price_cents)}</span>
+                    <span className="text-2xl line-through text-clove-300">{formatRupees(course.price_cents)}</span>
                     {" "}
-                    <span className="text-cardamom-700">{formatDollars(appliedCoupon.finalCents)}</span>
+                    <span className="text-cardamom-700">{formatRupees(appliedCoupon.finalCents)}</span>
                   </>
-                ) : formatDollars(course.price_cents)}
+                ) : formatRupees(course.price_cents)}
               </div>
 
               {/* Features */}
@@ -222,7 +205,7 @@ export default function CheckoutPageClient({ course }: { course: Course }) {
               <div className="space-y-2">
                 <div className="flex items-center gap-1.5 font-sans text-xs text-clove-500">
                   <Lock className="size-3.5 shrink-0 text-clove-400" aria-hidden />
-                  Secured by Stripe — encrypted payment
+                  Secured by Paytm — UPI, cards & wallets
                 </div>
                 <div className="flex items-center gap-1.5 font-sans text-xs text-clove-500">
                   <ShieldCheck className="size-3.5 shrink-0 text-cardamom-500" aria-hidden />
@@ -284,7 +267,7 @@ function ContactForm({
           setAppliedCoupon(result);
           onCouponApplied(result);
           setCouponStatus("valid");
-          setCouponMsg(`Saving ${formatDollars(data.discountCents)}!`);
+          setCouponMsg(`Saving ${formatRupees(data.discountCents)}!`);
           trackEvent("coupon_applied", { code: data.code, discount_cents: data.discountCents });
         } else {
           setCouponStatus("invalid");
@@ -361,7 +344,7 @@ function ContactForm({
       </Button>
       <p className="mt-2 flex items-center justify-center gap-1.5 font-sans text-xs text-clove-400">
         <Lock className="size-3" aria-hidden />
-        Payments secured by Stripe
+        Payments secured by Paytm
       </p>
     </form>
   );

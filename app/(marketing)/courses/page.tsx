@@ -1,3 +1,5 @@
+export const revalidate = 3600; // ISR: course list rarely changes
+
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { CourseCard } from "@/components/course-card";
@@ -81,15 +83,18 @@ export default async function CoursesPage({ searchParams }: Props) {
             </Badge>
           </div>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {bundles.map((bundle) => {
+            {bundles.map((bundle, i) => {
               const savings = Math.max(individualSumCents - bundle.price_cents, 0);
               return (
-                <CourseCard
-                  key={bundle.id}
-                  course={bundle}
-                  bundleSavingsCents={savings > 0 ? savings : undefined}
-                  bundleOriginalCents={savings > 0 ? individualSumCents : undefined}
-                />
+                <div key={bundle.id}>
+                  <CourseCard
+                    course={bundle}
+                    bundleSavingsCents={savings > 0 ? savings : undefined}
+                    bundleOriginalCents={savings > 0 ? individualSumCents : undefined}
+                    priority={i === 0}
+                    showFeatures
+                  />
+                </div>
               );
             })}
           </div>
@@ -102,16 +107,20 @@ export default async function CoursesPage({ searchParams }: Props) {
           <p className="font-sans text-[15px] text-clove-400">No courses match those filters.</p>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {individual.map((course) => (
-              <CourseCard
-                key={course.id}
-                course={course}
-                isBestseller={course.id === bestsellerCourseId}
-              />
+            {individual.map((course, i) => (
+              <div key={course.id}>
+                <CourseCard
+                  course={course}
+                  isBestseller={course.id === bestsellerCourseId}
+                  priority={i === 0}
+                  showFeatures
+                />
+              </div>
             ))}
           </div>
         )}
       </section>
+
     </main>
   );
 }

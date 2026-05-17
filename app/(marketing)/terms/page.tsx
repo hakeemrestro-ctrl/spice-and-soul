@@ -14,8 +14,9 @@ export default function TermsPage() {
         <section>
           <h2 className="mb-2 font-display text-xl text-clove-700">1. Acceptance</h2>
           <p>
-            By purchasing a course from Spice &amp; Soul Academy (operated by NK Ventures,
-            Indore, India) you agree to these terms.
+            By purchasing a course from Spice &amp; Soul Academy (operated by N K VENTURES,
+            Shop No. 03, Plot No. 84, MP Nagar Zone II, Bhopal, Madhya Pradesh — 462016, India)
+            you agree to these terms.
           </p>
         </section>
 
@@ -45,9 +46,10 @@ export default function TermsPage() {
         <section>
           <h2 className="mb-2 font-display text-xl text-clove-700">4. Pricing &amp; payment</h2>
           <p>
-            All prices are in USD. Payment is processed securely by Stripe. We do not store
-            card details. Prices may change at any time but confirmed purchases are honoured
-            at the price paid.
+            All prices are in INR (Indian Rupees). Payment is processed securely by Paytm.
+            We do not store card details. Prices may change at any time but confirmed
+            purchases are honoured at the price paid. GST, where applicable, is included in
+            the displayed price.
           </p>
         </section>
 
@@ -59,26 +61,73 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="mb-2 font-display text-xl text-clove-700">6. Limitation of liability</h2>
-          <p>
-            We are not liable for any indirect, incidental, or consequential damages arising
-            from your use of the course content. Our total liability shall not exceed the
-            amount you paid for the relevant course.
+          <h2 className="mb-2 font-display text-xl text-clove-700">6. Intellectual property</h2>
+          <p className="mb-3">
+            All content sold through Spice &amp; Soul Academy — including but not limited to
+            recipe PDFs, photographs, instructional text, course structure, branding, and the
+            Spice &amp; Soul Academy name and logo — is the exclusive intellectual property of
+            N K VENTURES (Hakeem, Bhopal) and is protected under Indian copyright law and
+            applicable international treaties.
+          </p>
+          <p className="mb-2 font-semibold text-clove-700">Your purchase grants you:</p>
+          <ul className="list-disc pl-5 space-y-1 mb-3">
+            <li>A personal, non-exclusive, non-transferable licence to use the purchased content for private household cooking</li>
+            <li>The right to print one physical copy per purchase for personal kitchen use</li>
+          </ul>
+          <p className="mb-2 font-semibold text-clove-700">Your purchase does not grant you:</p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Ownership of any intellectual property rights in the content</li>
+            <li>The right to reproduce, publish, broadcast, or create derivative works</li>
+            <li>Any licence to use the Spice &amp; Soul Academy or Hakeem brand, name, or logo</li>
+            <li>Permission to use the recipes or content for commercial purposes without a separate written agreement</li>
+          </ul>
+          <p className="mt-3">
+            Unauthorised copying, reproduction, or distribution of our content may result in
+            civil and criminal liability under the Indian Copyright Act, 1957.
           </p>
         </section>
 
         <section>
-          <h2 className="mb-2 font-display text-xl text-clove-700">7. Governing law</h2>
+          <h2 className="mb-2 font-display text-xl text-clove-700">7. Limitation of liability</h2>
+          <p className="mb-3">
+            Spice &amp; Soul Academy and N K VENTURES provide all course content on an
+            &ldquo;as is&rdquo; basis. While we take every care to ensure recipes are accurate
+            and safe, cooking involves inherent risks including allergens, heat, and sharp
+            implements. You are solely responsible for safe food handling practices in your
+            own kitchen.
+          </p>
+          <p className="mb-2 font-semibold text-clove-700">We are not liable for:</p>
+          <ul className="list-disc pl-5 space-y-1 mb-3">
+            <li>Any personal injury, illness, or property damage arising from following our recipes</li>
+            <li>Allergic reactions or dietary issues — always check ingredients against your own dietary requirements</li>
+            <li>Any indirect, incidental, special, or consequential loss or damage</li>
+            <li>Loss of data, revenue, or profits arising from use of or inability to use our content</li>
+            <li>Errors, omissions, or inaccuracies in content, to the extent permitted by law</li>
+          </ul>
+          <p>
+            In any event, our total liability to you shall not exceed the amount you paid for
+            the relevant course at the time of purchase. Nothing in these terms limits
+            liability for fraud, death, or personal injury caused by our negligence, as
+            required by Indian law.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-2 font-display text-xl text-clove-700">8. Governing law</h2>
           <p>
             These terms are governed by the laws of India. Disputes shall be subject to the
-            exclusive jurisdiction of the courts of Indore, Madhya Pradesh.
+            exclusive jurisdiction of the courts of Bhopal, Madhya Pradesh.
           </p>
         </section>
 
         <section>
-          <h2 className="mb-2 font-display text-xl text-clove-700">8. Contact</h2>
+          <h2 className="mb-2 font-display text-xl text-clove-700">9. Contact</h2>
           <p>
-            <strong>legal@spiceandsoul.com</strong> · NK Ventures, Indore, MP, India
+            <strong>hakeemrestro@gmail.com</strong>
+            <br />
+            Phone: <strong>+91 9406565799</strong>
+            <br />
+            N K VENTURES, Shop No. 03, Plot No. 84, MP Nagar Zone II, Bhopal, Madhya Pradesh — 462016
           </p>
         </section>
       </div>

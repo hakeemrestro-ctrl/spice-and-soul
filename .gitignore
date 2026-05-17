@@ -32,10 +32,6 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
-!.env.local.example
-
-# claude session files
-.claude/
 
 # vercel
 .vercel
@@ -43,3 +39,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# editor / agent metadata
+.claude/
+.cursor/
+
+# session compaction artifacts (claude-mem etc.)
+SESSION_COMPACT*.md
+
+# test artifacts
+/test-results/
+/playwright-report/

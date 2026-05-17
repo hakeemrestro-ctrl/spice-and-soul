@@ -9,7 +9,6 @@ import { Drawer } from "@base-ui/react/drawer";
 const NAV = [
   { href: "/", label: "Home" },
   { href: "/courses", label: "Courses" },
-  { href: "/restaurant", label: "Restaurant" },
   { href: "/resend", label: "Re-send PDFs" },
 ];
 
@@ -30,7 +29,7 @@ export function SiteHeader() {
               ACADEMY
             </div>
             <div className="mt-0.5 font-sans text-[9px] italic text-clove-400/70 tracking-wide">
-              by Hakeem&apos;s
+              by Hakeem
             </div>
           </div>
         </Link>
@@ -59,12 +58,6 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2.5 whitespace-nowrap">
-          <Link
-            href="/courses/bundle-all-5"
-            className="hidden rounded-full border border-saffron-300 bg-saffron-50 px-3 py-1.5 font-sans text-[12px] font-semibold text-saffron-700 transition-colors hover:bg-saffron-100 sm:inline-flex"
-          >
-            ✦ Get the Bundle
-          </Link>
           <Link
             href="/courses"
             className="hidden rounded-[10px] bg-clove-700 px-4 py-2.5 font-sans text-[13.5px] font-semibold text-cream-50 hover:bg-clove-900 md:inline-flex"
@@ -132,13 +125,6 @@ export function SiteHeader() {
 
                 {/* CTAs */}
                 <div className="mt-auto flex flex-col gap-3 border-t border-cream-200 px-5 py-5">
-                  <Link
-                    href="/courses/bundle-all-5"
-                    onClick={() => setOpen(false)}
-                    className="rounded-full border border-saffron-300 bg-saffron-50 px-4 py-2.5 text-center font-sans text-[13px] font-semibold text-saffron-700 transition-colors hover:bg-saffron-100"
-                  >
-                    ✦ Get the Bundle
-                  </Link>
                   <Link
                     href="/courses"
                     onClick={() => setOpen(false)}

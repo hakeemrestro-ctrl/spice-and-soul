@@ -13,16 +13,16 @@ const dmSerif = DM_Serif_Display({
   display: "swap",
 });
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://spiceandsoul.com";
+const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://hakeemrestro.shop";
 
 export const metadata: Metadata = {
-  title: "Spice & Soul Academy by Hakeem's — Indian Cooking Courses",
+  title: "Spice & Soul Academy by Hakeem — Indian Cooking Courses",
   description:
-    "Master authentic Indian cooking with 5 curated courses and 114 recipes. From dal to biryani — learn the flavours of India from your kitchen. By Hakeem's, Indore.",
+    "Master authentic Indian cooking with 5 curated courses and 114 recipes. From dal to biryani — learn the flavours of India from your kitchen. By Hakeem, Bhopal.",
   metadataBase: new URL(BASE),
   openGraph: {
-    title: "Spice & Soul Academy by Hakeem's",
-    description: "Master authentic Indian cooking — 5 courses, 114 recipes. By Hakeem's Restaurant, Indore.",
+    title: "Spice & Soul Academy by Hakeem",
+    description: "Master authentic Indian cooking — 5 courses, 114 recipes. By Hakeem Restaurant, Bhopal.",
     type: "website",
     url: BASE,
     siteName: "Spice & Soul Academy",
@@ -30,8 +30,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Spice & Soul Academy by Hakeem's",
-    description: "Master authentic Indian cooking — 5 courses, 114 recipes. By Hakeem's Restaurant, Indore.",
+    title: "Spice & Soul Academy by Hakeem",
+    description: "Master authentic Indian cooking — 5 courses, 114 recipes. By Hakeem Restaurant, Bhopal.",
     images: ["/opengraph-image"],
   },
 };
