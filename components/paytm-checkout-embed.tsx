@@ -24,22 +24,24 @@ type Props = {
   onCancel?: () => void;
 };
 
+type PaytmCheckoutConfig = {
+  root: string;
+  flow: string;
+  data: {
+    orderId: string;
+    token: string;
+    tokenType: string;
+    amount: string;
+  };
+  handler: {
+    notifyMerchant: (event: string, data: unknown) => void;
+    transactionStatus?: (data: unknown) => void;
+  };
+};
+
 type PaytmCheckoutJS = {
-  init: (config: {
-    root: string;
-    flow: string;
-    data: {
-      orderId: string;
-      token: string;
-      tokenType: string;
-      amount: string;
-    };
-    merchant: { mid: string; redirect: boolean };
-    handler: {
-      notifyMerchant: (event: string, data: unknown) => void;
-      transactionStatus?: (data: unknown) => void;
-    };
-  }) => Promise<void>;
+  onLoad: (cb: () => void) => void;
+  init: (config: PaytmCheckoutConfig) => Promise<void> | undefined;
   invoke: () => void;
 };
 
@@ -66,14 +68,13 @@ export default function PaytmCheckoutEmbed({
   useEffect(() => {
     if (!scriptReady || invokedRef.current) return;
     if (typeof window === "undefined") return;
-    const Paytm = window.Paytm?.CheckoutJS;
-    if (!Paytm) {
+    if (!window.Paytm?.CheckoutJS) {
       setError("Paytm SDK did not load. Please refresh and try again.");
       return;
     }
 
     invokedRef.current = true;
-    const config = {
+    const config: PaytmCheckoutConfig = {
       root: "",
       flow: "DEFAULT",
       data: {
@@ -82,7 +83,6 @@ export default function PaytmCheckoutEmbed({
         tokenType: "TXN_TOKEN",
         amount,
       },
-      merchant: { mid, redirect: false },
       handler: {
         notifyMerchant: (event: string, data: unknown) => {
           if (event === "APP_CLOSED") {
@@ -96,13 +96,34 @@ export default function PaytmCheckoutEmbed({
       },
     };
 
-    Paytm.init(config)
-      .then(() => Paytm.invoke())
-      .catch((err: unknown) => {
+    // V2 SDK requires onLoad wrapper because init/invoke are attached
+    // asynchronously after script load. Call methods via the global so `this`
+    // binding inside the SDK is correct (storing a reference like
+    // `const Paytm = window.Paytm.CheckoutJS` and calling `Paytm.init()`
+    // loses `this` and triggers "init is not a function").
+    window.Paytm.CheckoutJS.onLoad(function executeAfterCompleteLoad() {
+      try {
+        const initResult = window.Paytm!.CheckoutJS!.init(config);
+        if (initResult && typeof initResult.then === "function") {
+          initResult
+            .then(() => {
+              window.Paytm!.CheckoutJS!.invoke();
+            })
+            .catch((err: unknown) => {
+              const msg = err instanceof Error ? err.message : String(err);
+              console.error("[paytm:checkout] init/invoke failed", msg);
+              setError(`Could not start Paytm checkout: ${msg}`);
+            });
+        } else {
+          // Some SDK builds invoke synchronously. Fallback path.
+          window.Paytm!.CheckoutJS!.invoke();
+        }
+      } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        console.error("[paytm:checkout] init/invoke failed", msg);
+        console.error("[paytm:checkout] init threw synchronously", msg);
         setError(`Could not start Paytm checkout: ${msg}`);
-      });
+      }
+    });
   }, [scriptReady, orderId, mid, amount, txnToken, onCancel]);
 
   return (
