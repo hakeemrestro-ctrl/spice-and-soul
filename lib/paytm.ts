@@ -263,7 +263,13 @@ export async function buildV2InitiatePayload(input: {
   const signature = await generateSignature(stringifiedBody);
 
   // 4. Final wrapped payload.
-  const payload = { head: { signature }, body };
+  // head MUST include channelId alongside signature. Paytm's V2 ingress router
+  // classifies incoming traffic by channelId; if omitted, Paytm throws an
+  // internal null-pointer that surfaces as opaque HTTP 501 "System Error".
+  const payload = {
+    head: { channelId: cfg.channelId, signature },
+    body,
+  };
 
   // 5. URL with mid+orderId query params (Paytm V2 requirement).
   const url =
