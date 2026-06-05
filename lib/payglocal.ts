@@ -1,25 +1,43 @@
 /**
- * PayGlocal Payment Gateway helpers — PayCollect flow (API-key auth).
+ * PayGlocal Payment Gateway — JWT (JWE + JWS) auth, PayCollect flow.
  *
- * PayGlocal offers two integration flows:
- *   - PayCollect  — hosted page, customer enters card on PayGlocal. NON-PCI.
- *                   Auth via `x-gl-auth: <api_key>` header. THIS is what we use.
- *   - PayDirect   — merchant collects card data, JWT (JWE+JWS) auth. PCI-DSS.
+ * This account (N K Ventures, PA MID ptplnavedkha2089) is provisioned for
+ * JWT/RSA auth, not the simpler API-key auth. Every request is:
+ *   1. JWE-encrypt the JSON payload with PayGlocal's PUBLIC key (RSA-OAEP-256
+ *      + A128CBC-HS256).
+ *   2. JWS-sign a SHA-256 digest of that JWE with OUR merchant PRIVATE key
+ *      (RS256).
+ *   3. POST: header `x-gl-token-external: <JWS>`, body `<JWE>` (raw).
  *
- * Server-to-server flow:
- *   1. POST /gl/v1/payments/initiate/paycollect (x-gl-auth) → { gid, data.redirectUrl }
- *   2. Redirect customer to redirectUrl (PayGlocal hosted page)
- *   3. PayGlocal redirects/POSTs back to merchantCallbackURL after payment
- *   4. GET /gl/v1/payments/{gid}/status (x-gl-auth) → authoritative status
+ * Spec sourced verbatim from PayGlocal's official SDKs (payglocal-js-client,
+ * payglocal-python-sdk) + the official Postman collection — NOT guessed.
  *
- * Account: N K Ventures, PA transaction MID ptplnavedkha2089.
+ * Endpoints (PayCollect): {host}/gl/v1/payments/initiate/paycollect
+ * Status:                 {host}/gl/v1/payments/{id}/status
+ * Refund:                 {host}/gl/v1/payments/{id}/refund
+ * Hosts: api.prod.payglocal.in / api.uat.payglocal.in
  *
  * Env contract:
- *   PAYGLOCAL_API_KEY  — required, server-only. The x-gl-auth key.
- *   PAYGLOCAL_ENV      — optional, "production" | "test" (default production).
- *   PAYGLOCAL_HOST     — optional explicit host override.
- *   PAYGLOCAL_MID      — optional, for logging/reference (not sent in PayCollect body).
+ *   PAYGLOCAL_MID              — required (transacting MID, ptplnavedkha2089)
+ *   PAYGLOCAL_PRIVATE_KEY_PEM  — required, server-only (merchant private key, PKCS8)
+ *   PAYGLOCAL_PRIVATE_KID      — required (kid of merchant private key)
+ *   PAYGLOCAL_PUBLIC_KEY_PEM   — optional (PayGlocal public key SPKI; default below)
+ *   PAYGLOCAL_PUBLIC_KID       — optional (default 8cc91c8d-... — PayGlocal's CDN kid)
+ *   PAYGLOCAL_ENV              — optional, "production" | "test" (default production)
+ *   PAYGLOCAL_HOST             — optional explicit host override
  */
+import { CompactEncrypt, CompactSign, importSPKI, importPKCS8 } from "jose";
+import { createHash } from "node:crypto";
+
+// PayGlocal's well-known public key (also on https://cdn.payglocal.in/public-key/).
+// Used only for JWE encryption; override via PAYGLOCAL_PUBLIC_KEY_PEM if rotated.
+const DEFAULT_PUBLIC_KID = "8cc91c8d-8030-4660-a9c7-33de886fb495";
+
+const JWE_ALG = "RSA-OAEP-256";
+const JWE_ENC = "A128CBC-HS256";
+const JWS_ALG = "RS256";
+const DIGEST_ALG = "SHA-256";
+const TOKEN_TTL_MS = 300000; // 5 min, per PayGlocal SDK
 
 function requireEnv(name: string): string {
   const v = process.env[name];
@@ -34,16 +52,23 @@ function optionalEnv(name: string, fallback: string): string {
   return v && v.trim() !== "" ? v.trim() : fallback;
 }
 
+// Env-stored PEMs may arrive with literal "\n" (Vercel single-line) — normalise.
+function normalizePem(pem: string): string {
+  return pem.includes("\\n") ? pem.replace(/\\n/g, "\n") : pem;
+}
+
 function loadConfig() {
-  const apiKey = requireEnv("PAYGLOCAL_API_KEY");
+  const mid = requireEnv("PAYGLOCAL_MID");
+  const privateKeyPem = normalizePem(requireEnv("PAYGLOCAL_PRIVATE_KEY_PEM"));
+  const privateKid = requireEnv("PAYGLOCAL_PRIVATE_KID");
+  const publicKeyPem = normalizePem(requireEnv("PAYGLOCAL_PUBLIC_KEY_PEM"));
+  const publicKid = optionalEnv("PAYGLOCAL_PUBLIC_KID", DEFAULT_PUBLIC_KID);
   const env = optionalEnv("PAYGLOCAL_ENV", "production");
-  // PayGlocal hosts: UAT vs production. Base path is /gl/v1/payments.
   const host = optionalEnv(
     "PAYGLOCAL_HOST",
     env === "test" ? "api.uat.payglocal.in" : "api.prod.payglocal.in",
   );
-  const mid = optionalEnv("PAYGLOCAL_MID", "");
-  return { apiKey, env, host, mid };
+  return { mid, privateKeyPem, privateKid, publicKeyPem, publicKid, env, host };
 }
 
 let _cached: ReturnType<typeof loadConfig> | null = null;
@@ -59,32 +84,85 @@ export const PAYGLOCAL = new Proxy({} as ReturnType<typeof loadConfig>, {
   },
 });
 
-/** Non-PII config snapshot for runtime logging. Throws if API key missing. */
-export function auditPayglocalConfig(): Record<string, string | number> {
+/** Non-PII config snapshot for runtime logging. Throws if any required env missing. */
+export function auditPayglocalConfig(): Record<string, string | number | boolean> {
   const c = getConfig();
   return {
     env: c.env,
     host: c.host,
-    midTail: c.mid ? c.mid.slice(-4) : "(unset)",
-    apiKeyLen: c.apiKey.length,
-    apiKeyTail: c.apiKey.slice(-4),
-    initiateEndpoint: `https://${c.host}/gl/v1/payments/initiate/paycollect`,
+    midTail: c.mid.slice(-4),
+    privateKid: c.privateKid,
+    publicKid: c.publicKid,
+    privateKeyPemOk: c.privateKeyPem.includes("BEGIN") && c.privateKeyPem.includes("PRIVATE"),
+    publicKeyPemOk: c.publicKeyPem.includes("BEGIN") && c.publicKeyPem.includes("PUBLIC"),
+    endpoint: `https://${c.host}/gl/v1/payments/initiate/paycollect`,
   };
 }
 
-/** Unique PayGlocal merchantTxnId. Alphanumeric + `_`, kept distinct from Paytm. */
+/** Unique PayGlocal merchantTxnId. Distinct prefix from Paytm orders. */
 export function generatePayglocalOrderId(prefix = "PGL"): string {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const crypto = require("crypto") as typeof import("crypto");
+  const crypto = require("node:crypto") as typeof import("node:crypto");
   const ts = Date.now().toString(36);
   const rand = crypto.randomBytes(4).toString("hex").toUpperCase();
   return `${prefix}_${ts}_${rand}`;
 }
 
-/** Convert price in paise (₹×100) to the `"1249.00"` string PayGlocal expects. */
+/** Convert paise (₹×100) to PayGlocal's `"1249.00"` string. */
 export function paiseToAmount(paise: number): string {
   return (paise / 100).toFixed(2);
 }
+
+// --- JWE / JWS token generation (matches payglocal SDK exactly) -------------
+
+async function generateJWE(payload: unknown): Promise<string> {
+  const cfg = getConfig();
+  const publicKey = await importSPKI(cfg.publicKeyPem, JWE_ALG);
+  const header = {
+    "issued-by": cfg.mid,
+    enc: JWE_ENC,
+    exp: TOKEN_TTL_MS,
+    iat: `${Date.now()}`,
+    alg: JWE_ALG,
+    kid: cfg.publicKid,
+  };
+  return new CompactEncrypt(new TextEncoder().encode(JSON.stringify(payload)))
+    .setProtectedHeader(header)
+    .encrypt(publicKey);
+}
+
+async function generateJWS(jweToken: string): Promise<string> {
+  const cfg = getConfig();
+  const privateKey = await importPKCS8(cfg.privateKeyPem, JWS_ALG);
+  const digestObject = {
+    digest: createHash("sha256").update(jweToken).digest("base64"),
+    digestAlgorithm: DIGEST_ALG,
+    exp: TOKEN_TTL_MS,
+    iat: `${Date.now()}`,
+  };
+  const header = {
+    alg: JWS_ALG,
+    kid: cfg.privateKid,
+    "x-gl-merchantId": cfg.mid,
+    "issued-by": cfg.mid,
+    "is-digested": "true",
+    "x-gl-enc": "true",
+  };
+  return new CompactSign(new TextEncoder().encode(JSON.stringify(digestObject)))
+    .setProtectedHeader(header)
+    .sign(privateKey);
+}
+
+/** Build the { jwe, jws } pair for a transaction payload. */
+export async function buildJwtTokens(
+  payload: unknown,
+): Promise<{ jwe: string; jws: string }> {
+  const jwe = await generateJWE(payload);
+  const jws = await generateJWS(jwe);
+  return { jwe, jws };
+}
+
+// --- PayCollect initiate ----------------------------------------------------
 
 type InitiateInput = {
   merchantTxnId: string;
@@ -101,18 +179,10 @@ type PayglocalInitiateResponse = {
   message?: string;
   timestamp?: string;
   reasonCode?: string;
-  data?: {
-    redirectUrl?: string;
-    statusUrl?: string;
-    merchantTxnId?: string;
-  };
+  data?: { redirectUrl?: string; statusUrl?: string; merchantTxnId?: string };
   errors?: { detailedMessage?: string; displayMessage?: string };
 };
 
-/**
- * Initiate a PayCollect card payment.
- * Returns the parsed PayGlocal response (gid + redirectUrl on success).
- */
 export async function initiatePayCollect(
   input: InitiateInput,
 ): Promise<{ httpStatus: number; body: PayglocalInitiateResponse }> {
@@ -123,7 +193,7 @@ export async function initiatePayCollect(
   if (input.callingCode) billingData.callingCode = input.callingCode;
   if (input.phone) billingData.phoneNumber = input.phone;
 
-  const body = {
+  const payload = {
     merchantTxnId: input.merchantTxnId,
     paymentData: {
       totalAmount: input.amountRupees,
@@ -133,22 +203,26 @@ export async function initiatePayCollect(
     merchantCallbackURL: input.callbackUrl,
   };
 
+  const { jwe, jws } = await buildJwtTokens(payload);
+
   const res = await fetch(
     `https://${cfg.host}/gl/v1/payments/initiate/paycollect`,
     {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "text/plain",
         accept: "application/json",
-        "x-gl-auth": cfg.apiKey,
+        "x-gl-token-external": jws,
       },
-      body: JSON.stringify(body),
+      body: jwe,
     },
   );
 
   const json = (await res.json().catch(() => ({}))) as PayglocalInitiateResponse;
   return { httpStatus: res.status, body: json };
 }
+
+// --- Status query -----------------------------------------------------------
 
 type StatusResponse = {
   ok: boolean;
@@ -164,19 +238,23 @@ type StatusResponse = {
 };
 
 /**
- * Fetch the authoritative status of a transaction by GID (or merchantTxnId).
- * PayGlocal success terminal status = "SENT_FOR_CAPTURE".
+ * Authoritative status check by GID (or merchantTxnId).
+ *
+ * For JWT-auth merchants the status GET carries a JWS that signs a digest of
+ * the request PATH. PayGlocal returns the same status JSON shape as the
+ * API-key flow.
  */
 export async function getPayglocalStatus(id: string): Promise<StatusResponse> {
   const cfg = getConfig();
+  const path = `/gl/v1/payments/${encodeURIComponent(id)}/status`;
   try {
-    const res = await fetch(
-      `https://${cfg.host}/gl/v1/payments/${encodeURIComponent(id)}/status`,
-      {
-        method: "GET",
-        headers: { accept: "application/json", "x-gl-auth": cfg.apiKey },
-      },
-    );
+    // GET requests still need a JWS in x-gl-token-external. The digest is over
+    // the path string (PayGlocal SDK status flow signs the status path).
+    const jws = await generateJWS(path);
+    const res = await fetch(`https://${cfg.host}${path}`, {
+      method: "GET",
+      headers: { accept: "application/json", "x-gl-token-external": jws },
+    });
     const json = (await res.json().catch(() => ({}))) as {
       gid?: string;
       status?: string;

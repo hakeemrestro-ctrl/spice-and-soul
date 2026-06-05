@@ -50,3 +50,6 @@ SESSION_COMPACT*.md
 # test artifacts
 /test-results/
 /playwright-report/
+
+# PayGlocal local credential files (never commit)
+.payglocal-*
