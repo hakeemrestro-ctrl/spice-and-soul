@@ -41,12 +41,19 @@ type PaytmConfig = {
   host: string;
 };
 
+type Gateway = "paytm" | "payglocal";
+
 export default function CheckoutPageClient({ course }: { course: Course }) {
   const [paytmConfig, setPaytmConfig] = useState<PaytmConfig | null>(null);
   const [contactInfo, setContactInfo] = useState<{ email: string; name: string } | null>(null);
   const [appliedCoupon, setAppliedCoupon] = useState<CouponResult | null>(null);
 
-  const handleContactSubmit = async (email: string, name: string, couponCode?: string) => {
+  const handleContactSubmit = async (
+    email: string,
+    name: string,
+    gateway: Gateway,
+    couponCode?: string,
+  ) => {
     const params = typeof window !== "undefined"
       ? new URLSearchParams(window.location.search)
       : new URLSearchParams();
@@ -59,19 +66,39 @@ export default function CheckoutPageClient({ course }: { course: Course }) {
       utmTerm: params.get("utm_term") ?? undefined,
     };
 
+    const payload = {
+      courseId: course.id,
+      email,
+      name,
+      ...(couponCode ? { couponCode } : {}),
+      ...(utmFields.utmSource ? { acquisitionSource: utmFields.utmSource } : {}),
+      ...Object.fromEntries(
+        Object.entries(utmFields).filter(([, v]) => v !== undefined),
+      ),
+    };
+
+    // PayGlocal — hosted redirect flow.
+    if (gateway === "payglocal") {
+      const res = await fetch("/api/payglocal/initiate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.redirectUrl) {
+        trackEvent("checkout_started", { course: course.title, gateway: "payglocal" });
+        window.location.assign(data.redirectUrl);
+        return;
+      }
+      const pgErr = data.payglocal?.message ? ` (${data.payglocal.message})` : "";
+      throw new Error((data.error ?? "Checkout failed") + pgErr);
+    }
+
+    // Paytm — All-in-One JS modal flow.
     const res = await fetch("/api/paytm/initiate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        courseId: course.id,
-        email,
-        name,
-        ...(couponCode ? { couponCode } : {}),
-        ...(utmFields.utmSource ? { acquisitionSource: utmFields.utmSource } : {}),
-        ...Object.fromEntries(
-          Object.entries(utmFields).filter(([, v]) => v !== undefined),
-        ),
-      }),
+      body: JSON.stringify(payload),
     });
     const data = await res.json();
     if (data.orderId && data.txnToken && data.host && data.mid && data.amount) {
@@ -83,7 +110,7 @@ export default function CheckoutPageClient({ course }: { course: Course }) {
         txnToken: data.txnToken,
         host: data.host,
       });
-      trackEvent("checkout_started", { course: course.title });
+      trackEvent("checkout_started", { course: course.title, gateway: "paytm" });
     } else {
       const paytmErr = data.paytm?.resultMsg ? ` (${data.paytm.resultMsg})` : "";
       throw new Error((data.error ?? "Checkout failed") + paytmErr);
@@ -128,6 +155,9 @@ export default function CheckoutPageClient({ course }: { course: Course }) {
               courseId={course.id}
               onSubmit={handleContactSubmit}
               onCouponApplied={setAppliedCoupon}
+              payglocalEnabled={
+                process.env.NEXT_PUBLIC_PAYGLOCAL_ENABLED === "true"
+              }
             />
           ) : (
             <PaytmCheckoutEmbed
@@ -227,13 +257,21 @@ function ContactForm({
   courseId,
   onSubmit,
   onCouponApplied,
+  payglocalEnabled,
 }: {
   courseId: string;
-  onSubmit: (email: string, name: string, couponCode?: string) => Promise<void>;
+  onSubmit: (
+    email: string,
+    name: string,
+    gateway: Gateway,
+    couponCode?: string,
+  ) => Promise<void>;
   onCouponApplied: (coupon: CouponResult | null) => void;
+  payglocalEnabled: boolean;
 }) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [gateway, setGateway] = useState<Gateway>("paytm");
   const [couponCode, setCouponCode] = useState("");
   const [couponStatus, setCouponStatus] = useState<"idle" | "checking" | "valid" | "invalid">("idle");
   const [couponMsg, setCouponMsg] = useState<string | null>(null);
@@ -288,7 +326,7 @@ function ContactForm({
     setLoading(true);
     setError(null);
     try {
-      await onSubmit(email, name, appliedCoupon?.code);
+      await onSubmit(email, name, gateway, appliedCoupon?.code);
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -336,6 +374,30 @@ function ContactForm({
         )}
       </div>
 
+      {/* Payment method selector — only shown when PayGlocal is enabled,
+          otherwise checkout stays single-gateway (Paytm). */}
+      {payglocalEnabled && (
+        <div>
+          <label className="mb-1.5 block font-sans text-[13px] font-medium text-clove-700">
+            Payment method
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <GatewayOption
+              selected={gateway === "paytm"}
+              onSelect={() => setGateway("paytm")}
+              title="Paytm"
+              subtitle="UPI · Cards · Wallets"
+            />
+            <GatewayOption
+              selected={gateway === "payglocal"}
+              onSelect={() => setGateway("payglocal")}
+              title="PayGlocal"
+              subtitle="Intl & domestic cards"
+            />
+          </div>
+        </div>
+      )}
+
       {error && <p className="font-sans text-sm text-paprika-600">{error}</p>}
       <Button
         type="submit"
@@ -347,9 +409,40 @@ function ContactForm({
       </Button>
       <p className="mt-2 flex items-center justify-center gap-1.5 font-sans text-xs text-clove-400">
         <Lock className="size-3" aria-hidden />
-        Payments secured by Paytm
+        Payments secured by {gateway === "payglocal" ? "PayGlocal" : "Paytm"}
       </p>
     </form>
+  );
+}
+
+function GatewayOption({
+  selected,
+  onSelect,
+  title,
+  subtitle,
+}: {
+  selected: boolean;
+  onSelect: () => void;
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={`flex flex-col items-start rounded-xl border px-4 py-3 text-left transition-colors ${
+        selected
+          ? "border-saffron-400 bg-saffron-50 ring-2 ring-saffron-400/30"
+          : "border-clove-200 bg-cream-0 hover:border-clove-300"
+      }`}
+    >
+      <span className="flex w-full items-center justify-between font-sans text-[15px] font-semibold text-clove-700">
+        {title}
+        {selected && <Check className="size-4 text-saffron-500" aria-hidden />}
+      </span>
+      <span className="font-sans text-xs text-clove-400">{subtitle}</span>
+    </button>
   );
 }
 
