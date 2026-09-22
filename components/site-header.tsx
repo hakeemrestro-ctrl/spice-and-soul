@@ -9,6 +9,7 @@ import { Drawer } from "@base-ui/react/drawer";
 const NAV = [
   { href: "/", label: "Home" },
   { href: "/courses", label: "Courses" },
+  { href: "/about-us", label: "About Us" },
   { href: "/resend", label: "Re-send PDFs" },
 ];
 
