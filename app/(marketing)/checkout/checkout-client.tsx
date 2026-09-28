@@ -41,7 +41,7 @@ type PaytmConfig = {
   host: string;
 };
 
-type Gateway = "paytm" | "payglocal";
+type Gateway = "paytm" | "payglocal" | "billdesk";
 
 export default function CheckoutPageClient({ course }: { course: Course }) {
   const [paytmConfig, setPaytmConfig] = useState<PaytmConfig | null>(null);
@@ -92,6 +92,36 @@ export default function CheckoutPageClient({ course }: { course: Course }) {
       }
       const pgErr = data.payglocal?.message ? ` (${data.payglocal.message})` : "";
       throw new Error((data.error ?? "Checkout failed") + pgErr);
+    }
+
+    // BillDesk — hosted redirect flow via form post.
+    if (gateway === "billdesk") {
+      const res = await fetch("/api/billdesk/initiate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.hostedUrl && data.hostedParameters) {
+        trackEvent("checkout_started", { course: course.title, gateway: "billdesk" });
+        
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = data.hostedUrl;
+        
+        for (const [key, value] of Object.entries(data.hostedParameters)) {
+          const input = document.createElement("input");
+          input.type = "hidden";
+          input.name = key;
+          input.value = String(value);
+          form.appendChild(input);
+        }
+        
+        document.body.appendChild(form);
+        form.submit();
+        return;
+      }
+      throw new Error(data.error ?? "Checkout failed");
     }
 
     // Paytm — All-in-One JS modal flow.
@@ -157,6 +187,9 @@ export default function CheckoutPageClient({ course }: { course: Course }) {
               onCouponApplied={setAppliedCoupon}
               payglocalEnabled={
                 process.env.NEXT_PUBLIC_PAYGLOCAL_ENABLED === "true"
+              }
+              billdeskEnabled={
+                process.env.NEXT_PUBLIC_BILLDESK_ENABLED !== "false" // Enabled by default unless explicitly false
               }
             />
           ) : (
@@ -258,6 +291,7 @@ function ContactForm({
   onSubmit,
   onCouponApplied,
   payglocalEnabled,
+  billdeskEnabled,
 }: {
   courseId: string;
   onSubmit: (
@@ -268,6 +302,7 @@ function ContactForm({
   ) => Promise<void>;
   onCouponApplied: (coupon: CouponResult | null) => void;
   payglocalEnabled: boolean;
+  billdeskEnabled: boolean;
 }) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -374,26 +409,35 @@ function ContactForm({
         )}
       </div>
 
-      {/* Payment method selector — only shown when PayGlocal is enabled,
-          otherwise checkout stays single-gateway (Paytm). */}
-      {payglocalEnabled && (
+      {/* Payment method selector */}
+      {(payglocalEnabled || billdeskEnabled) && (
         <div>
           <label className="mb-1.5 block font-sans text-[13px] font-medium text-clove-700">
             Payment method
           </label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <GatewayOption
               selected={gateway === "paytm"}
               onSelect={() => setGateway("paytm")}
               title="Paytm"
               subtitle="UPI · Cards · Wallets"
             />
-            <GatewayOption
-              selected={gateway === "payglocal"}
-              onSelect={() => setGateway("payglocal")}
-              title="PayGlocal"
-              subtitle="Intl & domestic cards"
-            />
+            {billdeskEnabled && (
+              <GatewayOption
+                selected={gateway === "billdesk"}
+                onSelect={() => setGateway("billdesk")}
+                title="BillDesk"
+                subtitle="Secure Payments"
+              />
+            )}
+            {payglocalEnabled && (
+              <GatewayOption
+                selected={gateway === "payglocal"}
+                onSelect={() => setGateway("payglocal")}
+                title="PayGlocal"
+                subtitle="Intl & domestic cards"
+              />
+            )}
           </div>
         </div>
       )}
@@ -409,7 +453,7 @@ function ContactForm({
       </Button>
       <p className="mt-2 flex items-center justify-center gap-1.5 font-sans text-xs text-clove-400">
         <Lock className="size-3" aria-hidden />
-        Payments secured by {gateway === "payglocal" ? "PayGlocal" : "Paytm"}
+        Payments secured by {gateway === "payglocal" ? "PayGlocal" : gateway === "billdesk" ? "BillDesk" : "Paytm"}
       </p>
     </form>
   );
