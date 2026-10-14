@@ -423,7 +423,7 @@ function Step({ n, text }: { n: number; text: string }) {
 function ChefNote({ text }: { text: string }) {
   return (
     <View style={s.chefNote}>
-      <Text style={s.chefNoteLabel}>Chef's Note</Text>
+      <Text style={s.chefNoteLabel}>{"Chef's Note"}</Text>
       <Text style={s.chefNoteText}>{text}</Text>
     </View>
   );
@@ -500,18 +500,16 @@ function HR() {
   return <View style={s.hr} />;
 }
 
-// ── Module-level image store (react-pdf has no context support) ────────
-// Set by CurriculumPdf before any page renders.
-let IMAGES: CurriculumImages = {
+const DEFAULT_IMAGES: CurriculumImages = {
   cover: "", butterChicken: "", palakPaneer: "", chanaMasala: "", spices: "",
 };
 
 // ── PAGES ──────────────────────────────────────────────────────────────
 
-function CoverPage() {
+function CoverPage({ images }: { images: CurriculumImages }) {
   return (
     <Page size="A4" style={s.cover}>
-      <Image src={IMAGES.cover} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" }} />
+      <Image src={images.cover} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" }} />
       <View style={s.coverOverlay} />
       <View style={s.coverContent}>
         <Text style={s.coverEyebrow}>Spice &amp; Soul Academy</Text>
@@ -703,10 +701,10 @@ function EquipmentPage() {
   );
 }
 
-function ButterChickenDivider() {
+function ButterChickenDivider({ images }: { images: CurriculumImages }) {
   return (
     <Page size="A4" style={s.sectionDivider}>
-      <Image src={IMAGES.butterChicken} style={s.dividerBg} />
+      <Image src={images.butterChicken} style={s.dividerBg} />
       <View style={s.dividerOverlay} />
       <View style={s.dividerContent}>
         <Text style={s.dividerNumber}>01</Text>
@@ -718,13 +716,13 @@ function ButterChickenDivider() {
   );
 }
 
-function ButterChickenPage1() {
+function ButterChickenPage1({ images }: { images: CurriculumImages }) {
   return (
     <Page size="A4" style={s.body}>
       <PageHeader title="Butter Chicken" chapter="Module 01" />
       <PageFooter />
       <View style={{ marginTop: 22 }}>
-        <Image src={IMAGES.butterChicken} style={s.heroImage} />
+        <Image src={images.butterChicken} style={s.heroImage} />
         <Text style={s.heroCaption}>Murgh Makhani — velvety makhani sauce, charred tandoori chicken, finished with cream and kasuri methi</Text>
 
         <Eyebrow text="Module 01 · Authentic Butter Chicken" />
@@ -856,10 +854,10 @@ function ButterChickenPage2() {
   );
 }
 
-function PalakPaneerDivider() {
+function PalakPaneerDivider({ images }: { images: CurriculumImages }) {
   return (
     <Page size="A4" style={s.sectionDivider}>
-      <Image src={IMAGES.palakPaneer} style={s.dividerBg} />
+      <Image src={images.palakPaneer} style={s.dividerBg} />
       <View style={s.dividerOverlay} />
       <View style={s.dividerContent}>
         <Text style={s.dividerNumber}>02</Text>
@@ -871,13 +869,13 @@ function PalakPaneerDivider() {
   );
 }
 
-function PalakPaneerPage1() {
+function PalakPaneerPage1({ images }: { images: CurriculumImages }) {
   return (
     <Page size="A4" style={s.body}>
       <PageHeader title="Palak Paneer" chapter="Module 02" />
       <PageFooter />
       <View style={{ marginTop: 22 }}>
-        <Image src={IMAGES.palakPaneer} style={s.heroImage} />
+        <Image src={images.palakPaneer} style={s.heroImage} />
         <Text style={s.heroCaption}>Palak Paneer — emerald spinach purée, golden-crusted paneer, finishing tadka of ghee and cumin</Text>
 
         <Eyebrow text="Module 02 · Traditional Palak Paneer" />
@@ -992,10 +990,10 @@ function PalakPaneerPage2() {
   );
 }
 
-function ChanaMasalaDivider() {
+function ChanaMasalaDivider({ images }: { images: CurriculumImages }) {
   return (
     <Page size="A4" style={s.sectionDivider}>
-      <Image src={IMAGES.chanaMasala} style={s.dividerBg} />
+      <Image src={images.chanaMasala} style={s.dividerBg} />
       <View style={s.dividerOverlay} />
       <View style={s.dividerContent}>
         <Text style={s.dividerNumber}>03</Text>
@@ -1007,13 +1005,13 @@ function ChanaMasalaDivider() {
   );
 }
 
-function ChanaMasalaPage1() {
+function ChanaMasalaPage1({ images }: { images: CurriculumImages }) {
   return (
     <Page size="A4" style={s.body}>
       <PageHeader title="Chana Masala" chapter="Module 03" />
       <PageFooter />
       <View style={{ marginTop: 22 }}>
-        <Image src={IMAGES.chanaMasala} style={s.heroImage} />
+        <Image src={images.chanaMasala} style={s.heroImage} />
         <Text style={s.heroCaption}>Punjabi Chana Masala — dark mahogany gravy, tea-darkened chickpeas, finished with amchur and fresh ginger julienne</Text>
 
         <Eyebrow text="Module 03 · Classic Punjabi Chana Masala" />
@@ -1249,9 +1247,7 @@ function AssessmentPage() {
 
 // ── Main Document Export ────────────────────────────────────────────────
 
-export function CurriculumPdf({ images }: { images?: CurriculumImages }) {
-  // Set module-level store so all page sub-components can read images
-  if (images) IMAGES = images;
+export function CurriculumPdf({ images = DEFAULT_IMAGES }: { images?: CurriculumImages }) {
   return (
     <Document
       title="Mastering the Classics — Spice & Soul Academy Curriculum"
@@ -1260,17 +1256,17 @@ export function CurriculumPdf({ images }: { images?: CurriculumImages }) {
       creator="Spice & Soul Academy"
       keywords="Indian cooking, curriculum, Butter Chicken, Palak Paneer, Chana Masala"
     >
-      <CoverPage />
+      <CoverPage images={images} />
       <CourseOverviewPage />
       <EquipmentPage />
-      <ButterChickenDivider />
-      <ButterChickenPage1 />
+      <ButterChickenDivider images={images} />
+      <ButterChickenPage1 images={images} />
       <ButterChickenPage2 />
-      <PalakPaneerDivider />
-      <PalakPaneerPage1 />
+      <PalakPaneerDivider images={images} />
+      <PalakPaneerPage1 images={images} />
       <PalakPaneerPage2 />
-      <ChanaMasalaDivider />
-      <ChanaMasalaPage1 />
+      <ChanaMasalaDivider images={images} />
+      <ChanaMasalaPage1 images={images} />
       <ChanaMasalaPage2 />
       <AssessmentPage />
     </Document>

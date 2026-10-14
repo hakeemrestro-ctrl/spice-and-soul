@@ -70,7 +70,9 @@ export default function PaytmCheckoutEmbed({
   // arrow each render → useEffect cleanup disconnected the observer
   // immediately, killing the cancel-detection fallback.
   const onCancelRef = useRef(onCancel);
-  onCancelRef.current = onCancel;
+  useEffect(() => {
+    onCancelRef.current = onCancel;
+  });
 
   const scriptSrc = `https://${host}/merchantpgpui/checkoutjs/merchants/${encodeURIComponent(mid)}.js`;
 
@@ -78,7 +80,9 @@ export default function PaytmCheckoutEmbed({
     if (!scriptReady || invokedRef.current) return;
     if (typeof window === "undefined") return;
     if (!window.Paytm?.CheckoutJS) {
-      setError("Paytm SDK did not load. Please refresh and try again.");
+      setTimeout(() => {
+        setError("Paytm SDK did not load. Please refresh and try again.");
+      }, 0);
       return;
     }
 
@@ -197,7 +201,6 @@ export default function PaytmCheckoutEmbed({
     // onCancel intentionally NOT in deps — we read it via onCancelRef. Listing
     // it caused the effect (and observer) to tear down every parent render
     // since parents pass an inline arrow as onCancel.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scriptReady, orderId, mid, amount, txnToken]);
 
   return (
