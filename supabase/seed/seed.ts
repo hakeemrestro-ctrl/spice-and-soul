@@ -120,9 +120,26 @@ async function seed() {
       sort_order: i + 1,
     }));
 
+    // Query existing recipes for this course to preserve existing IDs and ensure idempotency
+    const { data: existingRecipes, error: fetchErr } = await supabase
+      .from("recipes")
+      .select("id, sort_order")
+      .eq("course_id", courseRow.id);
+
+    if (fetchErr) {
+      console.error(`Failed to fetch existing recipes for ${course.slug}:`, fetchErr);
+      process.exit(1);
+    }
+
+    const existingMap = new Map((existingRecipes ?? []).map((ex) => [ex.sort_order, ex.id]));
+    const recipeRowsWithIds = recipeRows.map((r) => ({
+      ...r,
+      ...(existingMap.has(r.sort_order) ? { id: existingMap.get(r.sort_order) } : {}),
+    }));
+
     const { error: recipesErr } = await supabase
       .from("recipes")
-      .upsert(recipeRows, { onConflict: "course_id,sort_order" });
+      .upsert(recipeRowsWithIds);
 
     if (recipesErr) {
       console.error(`Failed to upsert recipes for ${course.slug}:`, recipesErr);

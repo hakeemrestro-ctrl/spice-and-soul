@@ -67,13 +67,27 @@ export async function POST(
   // Recover original Paytm orderId from pending_orders
   const { data: pending } = await supabase
     .from("pending_orders")
-    .select("order_id")
+    .select("order_id, metadata")
     .eq("txn_id", txnId)
     .single();
 
   if (!pending) {
     return NextResponse.json(
       { error: "Original Paytm orderId not found — cannot refund." },
+      { status: 400 },
+    );
+  }
+
+  // This route is deliberately Paytm-only. Older Paytm rows predate the
+  // gateway marker, so the absence of metadata continues to mean Paytm.
+  // Never submit a BillDesk or PayGlocal transaction ID to Paytm's refund API.
+  const metadata = pending.metadata as
+    | { gateway?: unknown; paymentGateway?: unknown }
+    | null;
+  const gateway = metadata?.paymentGateway ?? metadata?.gateway ?? "paytm";
+  if (gateway !== "paytm") {
+    return NextResponse.json(
+      { error: "This payment must be refunded through its original provider." },
       { status: 400 },
     );
   }

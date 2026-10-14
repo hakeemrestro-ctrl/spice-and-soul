@@ -1,3 +1,11 @@
+import { randomUUID } from 'node:crypto';
+import { authorizeBilldeskCheckout, billdeskAppOrigin } from '@/lib/billdesk-uat-auth';
+import { readBilldeskBody } from '@/lib/billdesk-body';
+import { runBilldeskCheckout } from '@/lib/billdesk-checkout';
+import { hostedProfile, validateCreateResponse } from '@/lib/billdesk-create-response';
+import { billdeskLog } from '@/lib/billdesk-log';
+import { adapterRequest, upstreamEnabled } from '@/lib/billdesk-adapter-client';
+import { billdeskDevice } from '@/lib/billdesk-device';
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CheckoutInputSchema } from "@/lib/validations/checkout";
@@ -7,27 +15,23 @@ import {
   generateOrderId,
   generateTraceId,
   createJwsToken,
-  getBilldeskBaseUrl,
+  billdeskTimestamp,
   verifyJwsToken
 } from "@/lib/billdesk";
+import { operationForEnvironment } from '@/adapter/billdesk/protocol';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://hakeemrestro.shop";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: NextRequest) {
-  try {
-    console.info("[billdesk:initiate] config audit", auditBilldeskConfig());
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("[billdesk:initiate] BillDesk config not loadable", { error: msg });
-    return NextResponse.json(
-      { error: "Payment gateway misconfigured. Contact support." },
-      { status: 500 },
-    );
-  }
-
-  const reqBody = await req.json();
+async function initiate(req: NextRequest) {
+  if (!upstreamEnabled()) return NextResponse.json({ error: 'UPSTREAM_DISABLED' }, { status: 503 });
+  const correlationId = randomUUID(), started = Date.now();
+  let reqBody: unknown;
+  if (req.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/json') return NextResponse.json({ error: 'Invalid content type' }, { status: 415 });
+  try { reqBody = JSON.parse(await readBilldeskBody(req, 16384)); }
+  catch { return NextResponse.json({ error: 'Invalid input' }, { status: 400 }); }
+  const attemptId = req.headers.get('idempotency-key') || '';
+  if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(attemptId)) return NextResponse.json({ error: 'Invalid checkout attempt' }, { status: 400 });
   const parsed = CheckoutInputSchema.safeParse(reqBody);
 
   if (!parsed.success) {
@@ -49,6 +53,24 @@ export async function POST(req: NextRequest) {
     utmContent,
     utmTerm,
   } = parsed.data;
+
+  let actorRef: string;
+  try { actorRef = await authorizeBilldeskCheckout(req, email); }
+  catch { return NextResponse.json({ error: 'CHECKOUT_FORBIDDEN' }, { status: 403 }); }
+
+  let device;
+  try { device = billdeskDevice(req.headers); }
+  catch { return NextResponse.json({ error: 'Device configuration unavailable' }, { status: 400 }); }
+  try {
+    auditBilldeskConfig();
+    hostedProfile();
+  } catch {
+    billdeskLog('initiate', 'rejected', correlationId, Date.now() - started);
+    return NextResponse.json(
+      { error: "Payment gateway misconfigured. Contact support." },
+      { status: 500 },
+    );
+  }
 
   const supabase = createAdminClient();
 
@@ -97,6 +119,7 @@ export async function POST(req: NextRequest) {
   // 3. Persist pending order
   const orderId = generateOrderId();
   const metadata = {
+    paymentGateway: "billdesk",
     courseTitle: course.title,
     ...(resolvedCouponCode ? { couponCode: resolvedCouponCode } : {}),
     ...(acquisitionSource ? { acquisitionSource } : {}),
@@ -107,25 +130,22 @@ export async function POST(req: NextRequest) {
     ...(utmTerm ? { utmTerm } : {}),
   };
 
-  const { error: insertErr } = await supabase.from("pending_orders").insert({
-    order_id: orderId,
-    course_id: courseId,
-    amount_cents: finalCents,
-    customer_email: email,
-    customer_name: name,
-    metadata,
-    status: "pending",
-  });
-
-  if (insertErr) {
-    console.error("[billdesk:initiate] pending_orders insert failed", {
-      orderId,
-      code: (insertErr as { code?: string }).code ?? null,
-      message: insertErr.message,
-    });
-    return NextResponse.json({ error: "Failed to create order" }, { status: 500 });
-  }
-
+  try {
+  const response = await runBilldeskCheckout({ actorRef, attemptId, courseId, amount: finalCents, email, name, coupon: resolvedCouponCode || '' }, {
+    async reserve(binding, fingerprint) {
+      const { data, error } = await supabase.rpc('billdesk_reserve_checkout', {
+        p_attempt_id: binding.attemptId, p_actor_ref: binding.actorRef, p_course_id: binding.courseId,
+        p_amount: binding.amount, p_fingerprint: fingerprint, p_order_id: orderId,
+        p_email: email, p_name: name, p_metadata: metadata,
+      });
+      if (error || !data) throw new Error('Checkout unavailable');
+      return data;
+    },
+    async finish(id, state, result) {
+      const { error } = await supabase.rpc('billdesk_finish_checkout', { p_order_id: id, p_state: state, p_response: result });
+      if (error) throw new Error('Checkout persistence unavailable');
+    },
+  }, async (orderId) => {
   // 4. Build BillDesk Request
   const amountRupees = (finalCents / 100).toFixed(2);
   
@@ -133,9 +153,9 @@ export async function POST(req: NextRequest) {
   const now = new Date();
   const offsetMs = 5.5 * 60 * 60 * 1000; // IST offset
   const istDate = new Date(now.getTime() + offsetMs);
-  const orderDate = istDate.toISOString().replace('Z', '') + '+05:30';
+  const orderDate = istDate.toISOString().slice(0, 19) + '+05:30';
 
-  const returnUrl = `${APP_URL}/api/billdesk/callback`;
+  const returnUrl = `${billdeskAppOrigin()}/api/billdesk/callback`;
 
   const requestPayload = {
     mercid: BILLDESK_MERCID,
@@ -145,81 +165,32 @@ export async function POST(req: NextRequest) {
     currency: "356", // INR
     ru: returnUrl,
     itemcode: "DIRECT",
-    device: {
-      init_channel: "internet",
-      ip: "127.0.0.1", // To be filled appropriately or left out if not strictly validated
-      mac: "11-22-33-44-55-66"
-    }
+    device
   };
 
   const traceId = generateTraceId();
 
-  let jwsToken: string;
-  try {
-    jwsToken = await createJwsToken(requestPayload);
-  } catch (err) {
-    console.error("[billdesk:initiate] JWS creation failed", err);
-    return NextResponse.json({ error: "Failed to secure payload" }, { status: 500 });
-  }
-
-  // 5. POST server-to-server to BillDesk
-  const createOrderUrl = `${getBilldeskBaseUrl()}/orders/create`;
-  
-  let bdRes: Response;
-  let responseText: string;
-  try {
-    bdRes = await fetch(createOrderUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/jose",
-        "Accept": "application/jose",
-        "BD-Traceid": traceId,
-        "BD-Timestamp": istDate.toISOString().replace(/[-:T]/g, '').slice(0, 14)
-      },
-      body: jwsToken,
-    });
-    responseText = await bdRes.text();
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("[billdesk:initiate] BillDesk fetch failed", { orderId, error: msg });
-    return NextResponse.json({ error: "Payment gateway unreachable" }, { status: 502 });
-  }
-
-  if (!bdRes.ok) {
-    console.error("[billdesk:initiate] BillDesk rejected create order", { status: bdRes.status, body: responseText });
-    return NextResponse.json({ error: "Payment gateway error" }, { status: 502 });
-  }
-
-  // 6. Verify and Decode Response
-  let verifiedResponse;
-  try {
-    verifiedResponse = await verifyJwsToken(responseText);
-  } catch (err) {
-    console.error("[billdesk:initiate] Failed to verify BillDesk response signature", err);
-    return NextResponse.json({ error: "Invalid payment gateway response" }, { status: 502 });
-  }
-
-  const responsePayload = verifiedResponse.payload;
-  
-  if (responsePayload.status !== 'ACTIVE') {
-     console.error("[billdesk:initiate] BillDesk order not ACTIVE", responsePayload);
-     return NextResponse.json({ error: "Order creation failed at gateway" }, { status: 502 });
-  }
-
-  const hostedLink = responsePayload.links?.find((l: any) => l.rel === 'hosted') || responsePayload.links?.[1];
-
-  console.info("[billdesk:initiate] BillDesk order created", {
-    orderId,
-    bdOrderId: responsePayload.bdorderid,
+  const jwsToken = await createJwsToken(requestPayload);
+  const responseText = await adapterRequest(operationForEnvironment('orders/create'), {
+    operationId: orderId.replaceAll('_', '-'), traceId, timestamp: billdeskTimestamp(), jose: jwsToken,
   });
-
-  return NextResponse.json({
-    orderId,
-    bdOrderId: responsePayload.bdorderid,
-    merchantId: BILLDESK_MERCID,
-    authorizationToken: responsePayload.links?.find((l: any) => l.rel === 'authorization')?.headers?.authorization,
-    hostedUrl: hostedLink?.href,
-    hostedParameters: hostedLink?.parameters,
-    returnUrl,
+  const verifiedResponse = await verifyJwsToken(responseText);
+  const hosted = validateCreateResponse(verifiedResponse.payload, { orderId, merchantId: BILLDESK_MERCID, amount: amountRupees });
+  return { orderId, ...hosted, returnUrl };
   });
+  billdeskLog('initiate', 'accepted', correlationId, Date.now() - started);
+  return NextResponse.json(response, { headers: { 'Cache-Control': 'no-store' } });
+  } catch {
+    billdeskLog('initiate', 'unknown', correlationId, Date.now() - started);
+    return NextResponse.json({ error: 'Checkout requires reconciliation; do not start a new attempt' }, { status: 409 });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const started = Date.now();
+  try { return await initiate(req); }
+  catch {
+    billdeskLog('initiate', 'rejected', randomUUID(), Date.now() - started);
+    return NextResponse.json({ error: 'Checkout unavailable' }, { status: 503 });
+  }
 }

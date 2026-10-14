@@ -96,9 +96,13 @@ export default function CheckoutPageClient({ course }: { course: Course }) {
 
     // BillDesk — hosted redirect flow via form post.
     if (gateway === "billdesk") {
+      // Preserve across reconnects/reloads; never rotate on an ambiguous failure.
+      const storageKey = `billdesk-attempt:${course.id}`;
+      let attemptId = localStorage.getItem(storageKey);
+      if (!attemptId) { attemptId = crypto.randomUUID(); localStorage.setItem(storageKey, attemptId); }
       const res = await fetch("/api/billdesk/initiate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Idempotency-Key": attemptId },
         body: JSON.stringify(payload),
       });
       const data = await res.json();
@@ -189,7 +193,7 @@ export default function CheckoutPageClient({ course }: { course: Course }) {
                 process.env.NEXT_PUBLIC_PAYGLOCAL_ENABLED === "true"
               }
               billdeskEnabled={
-                process.env.NEXT_PUBLIC_BILLDESK_ENABLED !== "false" // Enabled by default unless explicitly false
+                process.env.NEXT_PUBLIC_BILLDESK_ENABLED === "true"
               }
             />
           ) : (
@@ -362,8 +366,8 @@ function ContactForm({
     setError(null);
     try {
       await onSubmit(email, name, gateway, appliedCoupon?.code);
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -427,7 +431,7 @@ function ContactForm({
                 selected={gateway === "billdesk"}
                 onSelect={() => setGateway("billdesk")}
                 title="BillDesk"
-                subtitle="Secure Payments"
+                subtitle="UPI · Cards · Net Banking"
               />
             )}
             {payglocalEnabled && (

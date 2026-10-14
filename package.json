@@ -9,13 +9,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "seed": "tsx supabase/seed/seed.ts",
+    "seed": "tsx --env-file=.env.local supabase/seed/seed.ts",
     "db:migrate": "supabase db push",
-    "images:backfill": "tsx --env-file=.env.local scripts/backfill-recipe-images.ts"
+    "images:backfill": "tsx --env-file=.env.local scripts/backfill-recipe-images.ts",
+    "test:billdesk": "node -e \"const { execSync } = require('child_process'); execSync('npx vitest run --config vitest.billdesk.config.mts', { stdio: 'inherit', env: { ...process.env, NODE_OPTIONS: '--experimental-sqlite' } });\"",
+    "test:jose": "node --experimental-sqlite --import ./tests/billdesk-server-condition.mjs --import tsx tests/test-billdesk-jose.ts",
+    "adapter:billdesk": "node --experimental-sqlite --import tsx adapter/billdesk/main.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",

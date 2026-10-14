@@ -1,0 +1,22 @@
+[Unit]
+Description=BillDesk Static IP Adapter UAT Service (Port 3100)
+After=network.target
+
+[Service]
+Type=simple
+User=billdesk-adapter
+Group=billdesk-adapter
+WorkingDirectory=/opt/billdesk-adapter
+EnvironmentFile=/etc/billdesk-adapter/adapter.env
+ExecStart=/usr/local/bin/node /opt/billdesk-adapter/adapter.mjs
+Restart=on-failure
+RestartSec=5s
+UMask=0077
+LimitNOFILE=65535
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

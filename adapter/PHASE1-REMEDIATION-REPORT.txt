@@ -1,0 +1,139 @@
+BILLDESK PHASE 1 REMEDIATION — LOCAL ONLY
+2026-10-08
+
+RESULT
+Local implementation and offline tests complete. NOT ready to deploy or pay.
+No BillDesk, Resend, Supabase or other external service request was made in this
+remediation turn. No deployment, DNS/firewall/network change, migration execution,
+production configuration change, dependency installation, commit or push occurred.
+The real upstream flag was not enabled. Mock test processes exercised both states.
+
+IMPLEMENTED
+1. Checkout attempts: browser key survives reload/reconnect; PostgreSQL reservation
+   atomically stores the key and pending order before dispatch. Fingerprint binds
+   authenticated tester, attempt, course, amount, recipient, name and coupon.
+   Same-key response reuse; mismatches rejected; started/unknown outcomes block
+   redispatch. Unique tester/course also blocks a different key bypass in UAT.
+   No automatic replacement order after timeout, restart or persistence failure.
+2. Shared adapter client enable gate protects both operations and future callers.
+   Retrieval also checks before cryptographic work. Adapter-side gate retained.
+3. BillDesk-only 15-step durable fulfillment. Snapshots and generated PDFs retained;
+   completed steps return saved results. External ambiguity blocks replay; pure
+   generation failures may recover. Required steps must all complete before the
+   database marks fulfillment complete. SDK error results are failures. Provider
+   message IDs mean acceptance only, not verified delivery. Coupon return checked.
+   Privileged individual-step reconciliation records evidence and requires stopped
+   workers. No public recovery endpoint; claims are never deleted. Legacy claims
+   have no new version and cannot blindly start a fresh fulfillment plan.
+4. BillDesk no longer invokes shared best-effort fulfillment/email functions.
+   Logs use fixed metadata; raw errors, PII, invoice IDs and JOSE are not logged.
+   Unexpected initiation failures are also sanitized at the route boundary.
+5. Verified Supabase user/session plus exact Origin and tester ID allowlist before
+   initiation business database/adapter work. Missing configuration denies access.
+6. Hosted response validation requires correct order/merchant/amount/currency,
+   active status, bounded ID/link shapes, one hosted POST, exact configured HTTPS
+   URL under billdesk.com, and exact allowed string form fields. No positional
+   fallback or unused authorization token returned. Profile required pre-dispatch.
+7. Explicit server-only guards; static client import-graph/reference checks.
+8. Initiation body max 16 KiB; notification body max 256 KiB; actual streamed-byte
+   limits, fatal UTF-8 decoding, unsupported compression rejection, ten-second
+   read deadline and cancellation on disconnect. Adapter response reader cancellation
+   strengthened. Private/mapped customer IPs rejected; no fabricated MAC.
+9. Callback uses isolated UAT origin with no production-origin fallback.
+
+FILES CHANGED IN THIS REMEDIATION TURN (paths relative to repository root)
+Configuration/application:
+  .env.example
+  app/(marketing)/checkout/checkout-client.tsx (BillDesk branch only)
+  app/api/billdesk/initiate/route.ts
+  app/api/billdesk/callback/route.ts
+  app/api/billdesk/webhook/route.ts
+  lib/billdesk.ts
+  lib/billdesk-adapter-client.ts
+  lib/billdesk-body.ts (new)
+  lib/billdesk-checkout.ts (new)
+  lib/billdesk-create-response.ts (new)
+  lib/billdesk-device.ts
+  lib/billdesk-fulfillment.ts (new)
+  lib/billdesk-handler.ts
+  lib/billdesk-log.ts (new)
+  lib/billdesk-steps.ts (new)
+  lib/billdesk-uat-auth.ts (new)
+Adapter:
+  adapter/billdesk/main.ts
+  adapter/billdesk/protocol.ts
+Prepared SQL only:
+  supabase/migrations/0019_billdesk_checkout_attempts.sql (new)
+  supabase/migrations/0020_billdesk_fulfillment_steps.sql (new)
+Tests/documentation:
+  tests/billdesk-server-condition.mjs (new; test-only Node resolver)
+  tests/test-billdesk-jose.ts
+  tests/unit/billdesk-adapter.test.ts
+  tests/unit/billdesk-authorization.test.ts (new)
+  tests/unit/billdesk-fulfillment.test.ts (new)
+  tests/unit/billdesk-initiation.test.ts (new)
+  tests/unit/billdesk-remediation.test.ts (new)
+  tests/unit/billdesk-routes.test.ts
+  vitest.billdesk.config.mts
+  adapter/README.txt
+  adapter/PHASE1-REMEDIATION-REPORT.txt (this report)
+Existing Phase 1 untracked files remain preserved. Migration 0018 and payment
+processor tests were reviewed but not edited by this turn. Shared fulfillment,
+send-course-email, Paytm/PayGlocal routes/modules, package.json and lockfile have
+no Git diff. The shared checkout file changed only inside its BillDesk branch.
+
+FRESH VALIDATION
+  Vitest: 222 passed, 0 failed, 9 test files.
+    213 BillDesk tests plus 9 existing validation/invoice regression tests.
+  JOSE/offline retrieval: 18 passed, 0 failed.
+  Total: 240 passed, 0 failed.
+  TypeScript: passed (noEmit, incremental false).
+  Git diff whitespace check: passed.
+  Initial sandbox Vitest runs hit Windows temporary-file EPERM before tests ran;
+  approved execution outside that sandbox resolved the harness issue.
+
+Commands (Node 24 for Vitest/JOSE):
+  node node_modules/vitest/vitest.mjs run --config vitest.billdesk.config.mts
+  node --import ./tests/billdesk-server-condition.mjs --import tsx tests/test-billdesk-jose.ts
+  node node_modules/typescript/bin/tsc --noEmit --incremental false
+  git diff --check
+
+SECURITY CHECKS
+.env.local is ignored and untracked; staging is empty. No matching configured
+secret values found in changed files by a value-hidden local scan. No .env.local
+content or secret value was printed. Local upstream flag is not enabled.
+Paytm/PayGlocal behavior unchanged; no production environment was edited by this
+task. External production state was not independently audited.
+
+REMAINING WARNINGS / NOT VERIFIED
+- No isolated PostgreSQL instance established (no Docker Linux engine pipe or
+  psql available). SQL execution, permissions, locks, unique constraints and true
+  multi-connection races remain UNVERIFIED. Unit store models are not substitutes.
+- Validate migrations 0018-0020 on disposable/staging data only: checkout same/different
+  key races, immutable mismatch, callback/webhook race, duplicate notifications,
+  pending-success, success-failure, wrong amount/gateway, cross-order transaction,
+  step ownership, worker crash, legacy claim rejection and evidence-based recovery.
+- PostgreSQL stores private PDF artifacts/form parameters. Validate large PDF/RPC
+  payload limits, retention, encryption/backups and access before deployment.
+- Single purchase per tester/course is a deliberate conservative UAT restriction.
+  Expired hosted forms and unknown orders need manual reconciliation, not new IDs.
+- Confirm BillDesk key encoding, key-ID request/response semantics, response
+  clientid/kid, timestamp/timezone/units/skew, device/MAC policy, exact hosted POST
+  URL/form fields, callback/webhook registration and IP whitelist. No guessed
+  values were inserted. New UAT authorization/origin/hosted profile entries remain
+  blank in .env.example; actual .env.local was not changed.
+- Establish isolated UAT app/auth/database configuration before enabling anything.
+- Adapter still needs approved HTTPS infrastructure, actual service egress check,
+  whitelist confirmation and reverse-proxy pre-auth rate limits. Authenticated
+  limiter is single-process/in-memory. Auth-key rotation and adapter operation
+  dedupe require review. Real TLS/socket failure/cancellation tests not run.
+- Production client bundle not built; Next server-only guards and static import
+  graph tests pass. No claim of a deployed bundle audit or end-to-end delivery.
+
+ROLLBACK
+Keep upstream disabled. Revert BillDesk application code if needed while retaining
+all attempt/claim/step/reconciliation data. Never delete claims to retry, roll back
+to shared best-effort execution for existing claims, or drop ledgers as cleanup.
+See adapter/README.txt for the recovery protocol and isolated database test plan.
+
+STOPPED. No infrastructure/deployment/payment work is authorized by this report.

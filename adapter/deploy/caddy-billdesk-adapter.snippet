@@ -1,0 +1,24 @@
+# Caddy snippet for BillDesk Static-IP Adapter
+# If using Caddy on the Droplet, Caddy manages automatic HTTPS certificates
+
+adapter.hakeemrestro.shop {
+    # Only allow the two exact POST operations
+    @allowedMethods {
+        method POST
+        path /uat/orders/create /uat/transactions/get
+    }
+
+    handle @allowedMethods {
+        reverse_proxy 127.0.0.1:3100 {
+            transport http {
+                response_header_timeout 20s
+                dial_timeout 5s
+            }
+        }
+    }
+
+    # Reject everything else
+    handle {
+        respond "Not Found" 404
+    }
+}

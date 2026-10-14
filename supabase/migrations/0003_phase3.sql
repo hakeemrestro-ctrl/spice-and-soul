@@ -60,13 +60,12 @@ CREATE TABLE public.coupons (
   applies_to_course_ids UUID[],          -- NULL = applies to all courses
   is_active             BOOLEAN NOT NULL DEFAULT true,
   created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT coupon_code_unique UNIQUE (upper(code)),
   CONSTRAINT coupon_has_discount CHECK (
     (discount_percent IS NOT NULL) OR (discount_cents IS NOT NULL)
   )
 );
 
-CREATE INDEX idx_coupons_code ON public.coupons (upper(code));
+CREATE UNIQUE INDEX idx_coupons_code ON public.coupons (upper(code));
 
 ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "coupons_admin_all" ON public.coupons FOR ALL USING (auth.jwt() ->> 'is_admin' = 'true');
