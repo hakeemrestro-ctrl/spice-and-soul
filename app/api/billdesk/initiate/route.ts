@@ -19,6 +19,7 @@ import {
   verifyJwsToken
 } from "@/lib/billdesk";
 import { operationForEnvironment } from '@/adapter/billdesk/protocol';
+import { recordBilldeskRawAudit } from '@/lib/billdesk-audit';
 
 
 export const dynamic = "force-dynamic";
@@ -171,9 +172,15 @@ async function initiate(req: NextRequest) {
   const traceId = generateTraceId();
 
   const jwsToken = await createJwsToken(requestPayload);
+  // Persist original encoded request string unchanged before dispatch
+  await recordBilldeskRawAudit(orderId, 'create_order_request', jwsToken, supabase);
+
   const responseText = await adapterRequest(operationForEnvironment('orders/create'), {
     operationId: orderId.replaceAll('_', '-'), traceId, timestamp: billdeskTimestamp(), jose: jwsToken,
   });
+  // Persist original encoded response string unchanged before parsing/reconstruction
+  await recordBilldeskRawAudit(orderId, 'create_order_response', responseText, supabase);
+
   const verifiedResponse = await verifyJwsToken(responseText);
   const hosted = validateCreateResponse(verifiedResponse.payload, { orderId, merchantId: BILLDESK_MERCID, amount: amountRupees });
   return { orderId, ...hosted, returnUrl };

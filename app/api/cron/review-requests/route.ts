@@ -15,9 +15,13 @@ import type { Course } from "@/types";
 const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://hakeemrestro.shop";
 
 export async function GET(req: NextRequest) {
+  if (process.env.BILLDESK_ENV === "UAT") {
+    return NextResponse.json({ error: "Scheduled email disabled in UAT" }, { status: 503 });
+  }
   // Vercel cron sends `Authorization: Bearer $CRON_SECRET`.
+  const secret = process.env.CRON_SECRET;
   const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!secret?.trim() || auth !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

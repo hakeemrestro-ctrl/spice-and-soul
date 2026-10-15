@@ -13,12 +13,13 @@ type CourseQuery = { select: () => CourseQuery; eq: () => CourseQuery; single: (
 let stored:StoredAttempt|null=null;
 beforeEach(()=>{
   stored=null;m.authorize.mockResolvedValue('a'.repeat(64));m.device.mockReturnValue({ip:'8.8.8.8'});m.adapter.mockResolvedValue('synthetic-response');
-  m.create.mockImplementation(async payload=>{expect(payload.order_date).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+05:30$/);return 'synthetic';});
+  m.create.mockImplementation(async payload=>{expect(payload.order_date).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+05:30$/);expect(payload).not.toHaveProperty('additional_info');return 'synthetic';});
   vi.stubEnv('BILLDESK_ENV','UAT');
   vi.stubEnv('BILLDESK_UAT_APP_ORIGIN','https://uat.example.invalid');vi.stubEnv('BILLDESK_UAT_HOSTED_URL','https://uat1.billdesk.com/fixture-hosted');vi.stubEnv('BILLDESK_UAT_HOSTED_FIELDS','token');
   m.verify.mockResolvedValue({payload:{status:'ACTIVE',orderid:'BD_fixture',mercid:'fixture',currency:'356',amount:'100.00',bdorderid:'fixture',links:[{rel:'redirect',method:'POST',href:'https://uat1.billdesk.com/fixture-hosted',parameters:{token:'synthetic'}}]}});
   m.from.mockImplementation(()=>{const chain:CourseQuery={select:()=>chain,eq:()=>chain,single:async()=>({data:{id:'course',title:'Fixture',price_cents:10000},error:null})};return chain;});
   m.rpc.mockImplementation(async(name,args)=>{
+    if(name==='billdesk_record_raw_audit')return {error:null};
     if(name==='billdesk_reserve_checkout'){
       if(stored){if(stored.fingerprint!==args.p_fingerprint)return {error:{message:'mismatch'},data:null};return {data:{...stored,dispatch:false},error:null};}
       stored={fingerprint:args.p_fingerprint,orderId:args.p_order_id,state:'started'};return {data:{...stored,dispatch:true},error:null};
@@ -59,4 +60,43 @@ it('concurrent route retries share one operation in mocked reservation model',as
 it('unexpected business DB exception never exposes raw customer data',async()=>{
   m.from.mockImplementation(()=>{throw new Error('private@example.invalid raw-token');});const r=await POST(request());expect(r.status).toBe(503);
   const logged=JSON.stringify(vi.mocked(console.info).mock.calls)+JSON.stringify(await r.json());expect(logged).not.toMatch(/private@|raw-token/);expect(m.adapter).not.toHaveBeenCalled();
+});
+
+for (const operation of ['create_order_request', 'create_order_response']) {
+  it(`${operation} audit failure blocks checkout progress and retry dispatch`, async () => {
+    const rpc = m.rpc.getMockImplementation()!;
+    m.rpc.mockImplementation(async (name, args) => {
+      if (name === 'billdesk_record_raw_audit' && args.p_operation === operation) {
+        return { error: { message: 'private audit diagnostic' } };
+      }
+      return rpc(name, args);
+    });
+    const result = await POST(request());
+    expect(result.status).toBe(409);
+    expect(await result.json()).toEqual({ error: 'Checkout requires reconciliation; do not start a new attempt' });
+    expect(m.adapter).toHaveBeenCalledTimes(operation === 'create_order_request' ? 0 : 1);
+    expect(m.verify).not.toHaveBeenCalled();
+    expect(stored?.state).toBe('unknown');
+    expect((await POST(request())).status).toBe(409);
+    expect(m.adapter).toHaveBeenCalledTimes(operation === 'create_order_request' ? 0 : 1);
+    expect(JSON.stringify(vi.mocked(console.info).mock.calls)).not.toContain('private audit diagnostic');
+  });
+}
+
+it('records unchanged Create Order strings in dispatch order', async () => {
+  const events: string[] = [];
+  const rpc = m.rpc.getMockImplementation()!;
+  m.rpc.mockImplementation(async (name, args) => {
+    if (name === 'billdesk_record_raw_audit') events.push(args.p_operation);
+    return rpc(name, args);
+  });
+  m.adapter.mockImplementation(async () => { events.push('dispatch'); return 'synthetic-response'; });
+  expect((await POST(request())).status).toBe(200);
+  expect(events).toEqual(['create_order_request', 'dispatch', 'create_order_response']);
+  expect(m.rpc).toHaveBeenCalledWith('billdesk_record_raw_audit', {
+    p_order_id: 'BD_fixture', p_operation: 'create_order_request', p_raw_token: 'synthetic',
+  });
+  expect(m.rpc).toHaveBeenCalledWith('billdesk_record_raw_audit', {
+    p_order_id: 'BD_fixture', p_operation: 'create_order_response', p_raw_token: 'synthetic-response',
+  });
 });

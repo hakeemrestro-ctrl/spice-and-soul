@@ -74,7 +74,7 @@ Obtain a written answer associated with the UAT Merchant ID and Client ID (recor
 
 The future UAT callback must be **`https://<approved-uat-app-origin>/api/billdesk/callback`** and the UAT S2S webhook **`https://<approved-uat-app-origin>/api/billdesk/webhook`**. These are URL patterns, not approved or registered URLs. Both must terminate on the isolated UAT app; neither is the adapter URL. BillDesk must confirm registration for this UAT Merchant ID before any transaction.
 
-- [ ] Inspect UAT schema prerequisites and migration order, then apply 0018, 0019, 0020 **only** to the isolated UAT Supabase project after separate authorization. Record migration IDs, permissions and rollback/forward-repair approach; do not run `supabase db push` against an unverified link.
+- [ ] Inspect UAT schema prerequisites and migration order, then apply 0018, 0019, 0020 and the new 0021 raw-audit migration **only** to the isolated UAT Supabase project after separate authorization. Review 0021's sensitive-token retention/access policy and test that audit RPC failure stops dispatch. Record migration IDs, permissions and rollback/forward-repair approach; do not run `supabase db push` against an unverified link.
 - [ ] Rerun separate-connection callback/webhook concurrency, duplicates, pending→success, success→failure, wrong amount, non-BillDesk order, transaction reuse, rollback, crash and step-recovery cases on **synthetic UAT data**. The prior disposable PostgreSQL pass does not establish cloud deployment correctness.
 - [ ] Validate deployed revision equivalence, tester auth, callback/webhook routing, server-only boundaries and disabled upstream before requesting a UAT-payment test window.
 
@@ -85,3 +85,45 @@ Only after Steps 1–5 are evidenced and the user explicitly authorizes UAT paym
 ## Exact next action
 
 **You:** ask your company/infrastructure owner for the **approved isolated UAT Vercel project ID, Supabase project ref, and exact HTTPS UAT app/adapter origins**, or for approval to provision separate resources if they do not yet exist. Have them identify the owning account/team and explicitly attest that neither target is production. Share only those non-secret identifiers and the location of the approval record. In parallel, send the Step 2 non-secret question list to BillDesk support and request written UAT whitelist confirmation for `64.225.85.27`. Until those records exist, UAT readiness remains **blocked** and both enable flags remain false.
+
+## 15 October local update
+
+The current checkout contains additional uncommitted BillDesk audit changes and migration 0021. Local BillDesk-only fixes removed customer email/name from optional Create Order `additional_info`, prevented callback success from relying on an unpersisted token transaction ID, and made raw-audit RPC failures fail closed. The complete local BillDesk suite passed 248/248 after its initiation fixture was updated for the new audit RPC; TypeScript passed. These are simulated/local results, not UAT payment evidence. Local `.env.local` has non-empty UAT configuration names, but their merchant approval and project association remain unverified; `BILLDESK_UPSTREAM_ENABLED` is disabled and the public selector variable is unset. The currently connected Supabase organization exposes only unrelated Re-Fraze projects (`htjrnlitrclesflyyvvl`, `vxwkdsebyzapbgproags`), so neither is an approved UAT target for this website. No cloud deployment, migration, BillDesk request or payment occurred in this update.
+
+## 16 October review: audit contract and remaining approvals
+
+The 248-test result above predates this review's regression additions. Fresh Node 24.19.0 validation after the scoped fixes: TypeScript passed; 277/277 tests across 12 files passed; targeted ESLint on all 11 pending BillDesk TypeScript files passed; `git diff --check` passed (line-ending warnings only). These checks used existing dependencies with the required filesystem access. The regression tests use synthetic transport/database fixtures; migration permissions were reviewed statically, not executed. No merchant payload approval, deployment, database migration or payment is implied by local tests.
+
+### Capture scope and failure handling
+
+Raw audit means preserving the selected encoded string unchanged, not retaining every wire response and not proving that every stored string is valid JOSE.
+
+| Message | Persistence boundary | Failure handling |
+| --- | --- | --- |
+| Create Order / Retrieve request | After JOSE creation, before adapter dispatch | Audit failure prevents that dispatch. Checkout remains unknown/requires reconciliation; an existing attempt is not automatically redispatched. |
+| Successful adapter response | Only bounded, non-redirect, successful `application/jose` bodies returned by the adapter client; stored before JOSE verification | Audit or verification failure prevents checkout success/payment claim. A completed upstream request cannot be undone. |
+| Callback / webhook | After JWS/JWE verification and payment-envelope validation; original token unchanged | Invalid body/signature/envelope is excluded. A later database binding rejection can still leave authenticated audit evidence. |
+| Callback audit failure | No terminal order status is displayed | Browser receives only a generic pending redirect; no claim, fulfillment or Retrieve request. |
+| Webhook audit failure | Includes inbound token and both Retrieve audit points | HTTP 503; no payment claim/fulfillment or success acknowledgement. |
+
+Rejected inbound raw tokens and non-success, wrong-content-type, oversized or transport-failed adapter responses are not retained in this table. Routes emit only redacted operational categories/correlation IDs, never token/error bodies. A successful HTTP JOSE body that fails cryptographic verification is retained as untrusted reconciliation evidence. Merchant support must confirm that these exclusions meet their audit checklist; broader capture needs a separately reviewed, bounded quarantine design rather than storage under unverified order IDs.
+
+Callback status display now requires a valid merchant/client/currency/status/amount envelope and a matching stored BillDesk order/amount. Paid display additionally requires the persisted transaction ID to match the token. Failed display requires a failure notification and failed database state. It never calls Retrieve or fulfills; webhook Retrieve remains authoritative for payment state.
+
+### Additional Info: supplied support checklist, not an approved schema
+
+User-supplied BillDesk Integration Support email wording:
+
+- Point 6: “Confirm that you are passing at least 3 values under Additional info 1 to 7 as it is mandatory. In case value is unavailable/missing for any of the additional info fields, please pass NA, but do not leave it blank.”
+- Point 7: “Note that you are supposed to include minimum and maximum 7 as Additional info in the payload.”
+- Point 12: “Confirm that no disallowed special characters are passed anywhere in the Additional Info1 to 7. Allowed characters are @ , . –”
+
+The draft helper now accepts seven neutral slots; it does not assign email/name/course or other customer data to fields. It fills missing slots with NA and separately checks exactly seven keys and at least three non-NA values. The existing key names, ASCII hyphen policy and local 100-character cap are provisional. Confirm the object/array schema, exact key names and mappings, length limit, whether NA counts toward the three values, and ASCII `-` versus the email's Unicode `–`. Create Order continues to omit Additional Info, with a regression assertion. Because the email calls it mandatory, merchant confirmation and a later reviewed implementation are a UAT payment blocker.
+
+### Migration 0021 access and retention
+
+The prepared SQL revokes all direct audit-table privileges from PUBLIC, anon, authenticated and service_role, including any default direct grants. The application receives only EXECUTE on `billdesk_record_raw_audit(p_order_id text, p_operation text, p_raw_token text)`. The SECURITY DEFINER RPC uses an empty search_path and a schema-qualified insert. It must be owned by the trusted migration owner, normally postgres, not service_role. No customer-facing audit read/delete API is provided.
+
+Before any authorized application, inspect the target's migration history; if 0021 already exists, do not rerun or silently rewrite its deployed history. Reconcile its actual definition/ACLs and plan a separate forward migration if needed. On the approved isolated database, verify schema USAGE/API exposure, the function owner and EXECUTE grant, denied direct table access for service_role, denied anon/authenticated execution, successful RPC insertion and unchanged raw-token storage. These effective-permission checks have not been executed in this review.
+
+No deletion job or retention interval is invented here. Infrastructure/security owners must approve retention duration, legal holds, backup expiry, privileged read access, an independently authorized deletion procedure and storage-growth monitoring (including repeated valid notifications). Only a privileged operator should perform approved retention deletion. Database owners/superusers retain access; this is not immutable or tamper-proof evidence. Keep UAT upstream disabled until this policy and the migration verification are complete.

@@ -3,6 +3,7 @@ import 'server-only';
 import { fulfillBilldeskOrder } from './billdesk-fulfillment';
 import { readBilldeskBody } from './billdesk-body';
 import { processBilldeskPayment, type BilldeskStore } from './billdesk-payment';
+import { recordBilldeskRawAudit } from './billdesk-audit';
 
 export async function handleBilldeskPayment(token: string) {
   const supabase = createAdminClient();
@@ -24,6 +25,7 @@ export async function handleBilldeskPayment(token: string) {
   return processBilldeskPayment(token, {
     store,
     fulfill: (pending, txnId) => fulfillBilldeskOrder(pending, txnId, supabase),
+    audit: (orderId, op, rawToken) => recordBilldeskRawAudit(orderId, op, rawToken, supabase),
   });
 }
 

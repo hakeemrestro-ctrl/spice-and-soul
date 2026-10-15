@@ -82,12 +82,23 @@ export async function verifyJwsToken(token: string) {
   } catch { throw new Error('Invalid BillDesk JOSE message'); }
 }
 
-export async function getBillDeskTransactionStatus(orderId: string) {
+export async function getBillDeskTransactionStatus(
+  orderId: string,
+  onRawAudit?: (operation: 'retrieve_transaction_request' | 'retrieve_transaction_response', rawToken: string) => Promise<void>,
+) {
   if (!upstreamEnabled()) throw new Error('UPSTREAM_DISABLED');
   auditBilldeskConfig();
   const token = await createJwsToken({ mercid: BILLDESK_MERCID, orderid: orderId, refund_details: true });
+  if (onRawAudit) {
+    await onRawAudit('retrieve_transaction_request', token);
+  }
   const response = await adapterRequest(operationForEnvironment('transactions/get'), {
     operationId: newOperationId(), traceId: generateTraceId(), timestamp: billdeskTimestamp(), jose: token,
   });
+  // Only bounded successful application/jose adapter responses reach this point.
+  // Preserve even an invalid JOSE body for reconciliation before verifying it.
+  if (onRawAudit) {
+    await onRawAudit('retrieve_transaction_response', response);
+  }
   return (await verifyJwsToken(response)).payload;
 }

@@ -14,6 +14,9 @@ const nextConfig: NextConfig = {
     ],
   },
   redirects() {
+    // Vercel handles HTTPS for the isolated UAT host. Never forward UAT requests
+    // (including callback POST bodies) to the production canonical domain.
+    if (process.env.BILLDESK_ENV === "UAT") return Promise.resolve([]);
     return Promise.resolve([
       {
         source: "/:path*",

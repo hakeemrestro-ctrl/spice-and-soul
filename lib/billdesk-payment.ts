@@ -1,5 +1,6 @@
 import { BILLDESK_CLIENT_ID, BILLDESK_MERCID, getBillDeskTransactionStatus, verifyJwsToken } from './billdesk';
 import type { PendingOrderRow } from './fulfill-order';
+import type { BilldeskAuditOperation } from './billdesk-audit';
 
 export type PaymentOutcome = { status: 'paid' | 'pending' | 'failed' | 'review'; txnId?: string };
 type Message = Record<string, unknown>;
@@ -22,7 +23,8 @@ export function validatePayment(message: Message, orderId?: string) {
   if (typeof message.orderid !== 'string' || !/^BD_[a-zA-Z0-9_]{1,116}$/.test(message.orderid) ||
       (orderId !== undefined && message.orderid !== orderId) || message.mercid !== BILLDESK_MERCID ||
       (message.clientid !== undefined && message.clientid !== BILLDESK_CLIENT_ID) || message.currency !== '356' ||
-      !['0300', '0002', '0399'].includes(String(message.auth_status))) throw new Error('Invalid BillDesk payment binding');
+      typeof message.auth_status !== 'string' ||
+      !['0300', '0002', '0399'].includes(message.auth_status)) throw new Error('Invalid BillDesk payment binding');
   if (message.transactionid !== undefined &&
       (typeof message.transactionid !== 'string' || !/^[a-zA-Z0-9]{14,35}$/.test(message.transactionid))) {
     throw new Error('Invalid BillDesk transaction identifier');
@@ -37,9 +39,23 @@ export async function processBilldeskPayment(token: string, deps: {
   fulfill: (pending: PendingOrderRow, txnId: string) => Promise<void>;
   verify?: typeof verifyJwsToken;
   retrieve?: typeof getBillDeskTransactionStatus;
+  audit?: (orderId: string, operation: BilldeskAuditOperation, rawToken: string) => Promise<void>;
 }): Promise<PaymentOutcome> {
-  const notification = validatePayment((await (deps.verify ?? verifyJwsToken)(token)).payload);
-  const retrieved = validatePayment(await (deps.retrieve ?? getBillDeskTransactionStatus)(notification.orderId), notification.orderId);
+  const verified = await (deps.verify ?? verifyJwsToken)(token);
+  const notification = validatePayment(verified.payload);
+
+  // Only authenticated, structurally valid inbound payment tokens are retained.
+  // Preserve the original string; do not serialize the decrypted payload.
+  if (deps.audit) {
+    await deps.audit(notification.orderId, 'webhook_response', token);
+  }
+
+  const retrievedPayload = await (deps.retrieve ?? getBillDeskTransactionStatus)(
+    notification.orderId,
+    deps.audit ? (op, raw) => deps.audit!(notification.orderId, op, raw) : undefined,
+  );
+  const retrieved = validatePayment(retrievedPayload, notification.orderId);
+
   if (notification.amount !== retrieved.amount ||
       (notification.txnId && retrieved.txnId && notification.txnId !== retrieved.txnId)) {
     throw new Error('BillDesk notification and retrieval disagree');
