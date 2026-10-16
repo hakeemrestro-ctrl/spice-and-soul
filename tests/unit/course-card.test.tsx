@@ -26,7 +26,7 @@ describe("CourseCard", () => {
   it("renders course title and price", () => {
     render(<CourseCard course={mockCourse} />);
     expect(screen.getByText("North Indian Classics")).toBeInTheDocument();
-    expect(screen.getByText("$250")).toBeInTheDocument();
+    expect(screen.getByText("₹250")).toBeInTheDocument();
   });
 
   it("renders recipe count", () => {

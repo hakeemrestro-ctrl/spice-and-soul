@@ -5,11 +5,20 @@ import path from "path";
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: "jsdom",
-    setupFiles: ["./tests/setup.ts"],
-    globals: true,
-    passWithNoTests: true,
-    exclude: ["**/node_modules/**", "**/tests/e2e/**"],
+    passWithNoTests: false,
+    projects: [
+      "./vitest.billdesk.config.mts",
+      {
+        extends: true,
+        test: {
+          name: "ui",
+          environment: "jsdom",
+          setupFiles: ["./tests/setup.ts"],
+          globals: true,
+          include: ["tests/unit/**/*.test.tsx"],
+        },
+      },
+    ],
   },
   resolve: {
     alias: {

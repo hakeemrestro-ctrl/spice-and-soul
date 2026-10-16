@@ -1,4 +1,9 @@
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+  - msw
+  - supabase
+
+onlyBuiltDependencies:
+  - esbuild
 
