@@ -111,7 +111,7 @@ describe('BillDesk Raw Encoded String Preservation & Webhook-Only Fulfillment', 
       expect(auditCalls.map(call => call.operation)).toEqual(['webhook_response', 'retrieve_transaction_request']);
       expect(auditCalls[1].rawToken).toBe(dispatchedToken);
       expect((await bd.verifyJwsToken(dispatchedToken)).payload).toEqual({
-        mercid: 'TESTMER', orderid: 'BD_test', refund_details: true,
+        mercid: 'TESTMER', orderid: 'BD_test', refund_details: 'true',
       });
       return new Response(retrieveResponseRawToken, { headers: { 'content-type': 'application/jose' } });
     }));

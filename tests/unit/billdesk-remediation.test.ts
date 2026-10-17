@@ -89,6 +89,34 @@ const profile={url:'https://uat1.billdesk.com/fixture-hosted',fields:'token,merc
 const expected={orderId:'BD_fixture',merchantId:'fixture',amount:'100.00'};
 function response(){return {status:'ACTIVE',orderid:expected.orderId,mercid:expected.merchantId,amount:expected.amount,currency:'356',bdorderid:'fixture',links:[{rel:'redirect',method:'POST',href:profile.url,parameters:{token:'fixture',merchantid:'fixture'}}]};}
 it('validates the complete hosted form profile',()=>expect(validateCreateResponse(response(),expected,profile).hostedUrl).toBe(profile.url));
+it('validates the supplied UAT hosted form contract and rejects mismatched form bindings', () => {
+  const kitProfile = { url: 'https://uat1.billdesk.com/u2/web/v1_2/embeddedsdk', fields: 'bdorderid,merchantid,rdata' };
+  const value = { ...response(), links: [{ rel: 'redirect', method: 'POST', href: kitProfile.url,
+    parameters: { bdorderid: 'fixture', merchantid: expected.merchantId, rdata: 'synthetic-opaque-data' } }] };
+  expect(validateCreateResponse(value, expected, kitProfile).hostedParameters).toEqual(value.links[0].parameters);
+  for (const field of ['bdorderid', 'merchantid'] as const) {
+    const mismatch = structuredClone(value);
+    mismatch.links[0].parameters[field] = 'unrelated';
+    expect(() => validateCreateResponse(mismatch, expected, kitProfile)).toThrow();
+  }
+});
+it('maps documented mercid to hosted merchantid without mutating the signed response', () => {
+  const kit = { url: 'https://uat1.billdesk.com/u2/web/v1_2/embeddedsdk', fields: 'bdorderid,merchantid,rdata' };
+  const value = { ...response(), links: [{ rel: 'redirect', method: 'POST', href: kit.url,
+    parameters: { mercid: expected.merchantId, bdorderid: 'fixture', rdata: 'opaque-fixture' } }] };
+  const original = structuredClone(value);
+  expect(validateCreateResponse(value, expected, kit).hostedParameters).toEqual({
+    merchantid: expected.merchantId, bdorderid: 'fixture', rdata: 'opaque-fixture',
+  });
+  expect(value).toEqual(original);
+  value.links[0].parameters.mercid = 'different';
+  expect(() => validateCreateResponse(value, expected, kit)).toThrow();
+  const ambiguous = { ...original, links: [{ ...original.links[0], parameters: {
+    ...original.links[0].parameters, merchantid: expected.merchantId,
+  } }] };
+  expect(() => validateCreateResponse(ambiguous, expected, kit)).toThrow();
+  expect(() => validateCreateResponse(original, expected, { ...kit, url: 'https://uat1.billdesk.com/other' })).toThrow();
+});
 for(const mutation of ['links-object','duplicate','method','host','http','path','field','object-value','binding','relation','missing-id'])it(`rejects malformed authenticated response ${mutation}`,()=>{
   const r: Omit<ReturnType<typeof response>, 'links' | 'bdorderid'> & { bdorderid?: string; links: Array<{ rel: string; method: string; href: string; parameters: Record<string, unknown> }> }=response();
   if(mutation==='duplicate')r.links.push(r.links[0]);if(mutation==='method')r.links[0].method='GET';

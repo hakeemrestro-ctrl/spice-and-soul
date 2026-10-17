@@ -172,7 +172,7 @@ describe('BillDesk route boundaries', () => {
     expect(result.headers.get('location')).toBe('https://uat.example.invalid/courses?payment=pending');
   });
 
-  it('callback redirects to failed only for a bound failure and failed database status', async () => {
+  it('callback displays failure only for a bound failure and failed database status', async () => {
     mocks.verify.mockResolvedValue({
       payload: { orderid: 'BD_test', auth_status: '0399', mercid: 'fixture', currency: '356', amount: '100.00' },
       jwsHeader: {},
@@ -180,8 +180,9 @@ describe('BillDesk route boundaries', () => {
     });
     mocks.maybeSingle.mockResolvedValue({ data: { ...boundOrder, status: 'failed', txn_id: null }, error: null });
     const result = await callback(request());
-    expect(result.status).toBe(303);
-    expect(result.headers.get('location')).toBe('https://uat.example.invalid/courses?payment=failed');
+    expect(result.status).toBe(200);
+    expect(await result.text()).toContain('Payment not completed');
+    expect(result.headers.get('cache-control')).toBe('no-store');
     expect(mocks.process).not.toHaveBeenCalled();
     expect(mocks.fulfill).not.toHaveBeenCalled();
   });

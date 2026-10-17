@@ -20,7 +20,8 @@ export function amountInPaise(value: unknown): number {
 }
 
 export function validatePayment(message: Message, orderId?: string) {
-  if (typeof message.orderid !== 'string' || !/^BD_[a-zA-Z0-9_]{1,116}$/.test(message.orderid) ||
+  // Accept new merchant-kit IDs and already-persisted legacy IDs.
+  if (typeof message.orderid !== 'string' || !/^(?:BD[a-f0-9]{32}|BD_[a-zA-Z0-9_]{1,116})$/.test(message.orderid) ||
       (orderId !== undefined && message.orderid !== orderId) || message.mercid !== BILLDESK_MERCID ||
       (message.clientid !== undefined && message.clientid !== BILLDESK_CLIENT_ID) || message.currency !== '356' ||
       typeof message.auth_status !== 'string' ||
@@ -59,6 +60,14 @@ export async function processBilldeskPayment(token: string, deps: {
   if (notification.amount !== retrieved.amount ||
       (notification.txnId && retrieved.txnId && notification.txnId !== retrieved.txnId)) {
     throw new Error('BillDesk notification and retrieval disagree');
+  }
+  // Retrieve documents refundInfo as an array (0799 refund / 0699 cancellation).
+  // Neither a full nor partial refund may authorize fresh fulfillment. Unknown
+  // shapes/statuses also need reconciliation; never issue an automatic refund.
+  // The documented no-refund example omits the property entirely.
+  if (Object.hasOwn(retrievedPayload, 'refundInfo') &&
+      (!Array.isArray(retrievedPayload.refundInfo) || retrievedPayload.refundInfo.length > 0)) {
+    return { status: 'review', txnId: retrieved.txnId };
   }
   // Retrieve is authoritative: a delayed pending/failure notification can coexist
   // with a now-successful retrieval. Never key a success claim on pending events.

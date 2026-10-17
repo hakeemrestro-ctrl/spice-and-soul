@@ -2,8 +2,9 @@ import 'server-only';
 
 // Draft checklist utility only. NOT wired into Create Order.
 // Support points 6/7 require seven entries, at least three available values and
-// NA for unavailable entries. The merchant must confirm the JSON schema, field
-// mapping, length limit and whether point 12's dash means ASCII '-' or Unicode '–'.
+// NA for unavailable entries. Create Order documents additional_info1 through 7.
+// Business field mapping, length limit and whether point 12's dash means ASCII
+// '-' or Unicode '–' still require resolution; never assign customer PII here.
 // The existing ASCII policy and 100-character local cap are provisional.
 export interface BilldeskAdditionalInfo {
   [key: string]: string;
@@ -48,7 +49,7 @@ export function isValidAdditionalInfoValue(val: string): boolean {
 
 /**
  * Normalizes seven caller-supplied slots without assigning customer data to them.
- * Keys are the existing draft representation, not a confirmed merchant schema.
+ * Keys follow the published Create Order additional_info object schema.
  * Missing values become NA. Building does NOT guarantee three populated values;
  * validateAdditionalInfo must also pass, and merchant approval is still required.
  */

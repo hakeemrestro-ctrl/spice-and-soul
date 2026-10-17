@@ -1,0 +1,37 @@
+[Unit]
+Description=Isolated BillDesk UAT email capture (no mail delivery)
+After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=billdesk-mail-uat
+Group=billdesk-mail-uat
+WorkingDirectory=/opt/billdesk-uat-mail-capture
+EnvironmentFile=/etc/billdesk-uat-mail-capture/capture.env
+ExecStart=/opt/node-v24.21.0-linux-x64/bin/node --experimental-sqlite /opt/billdesk-uat-mail-capture/capture.mjs
+StateDirectory=billdesk-uat-mail-capture
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_INET AF_UNIX
+CapabilityBoundingSet=
+IPAddressDeny=any
+IPAddressAllow=localhost
+ReadWritePaths=/var/lib/billdesk-uat-mail-capture
+MemoryMax=384M
+TasksMax=32
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

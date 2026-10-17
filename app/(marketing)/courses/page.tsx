@@ -6,17 +6,19 @@ import { CourseCard } from "@/components/course-card";
 import { Badge } from "@/components/ui/badge";
 import { CourseFilters } from "./course-filters";
 import type { Course } from "@/types";
+import { billdeskCustomerMessage } from '@/lib/billdesk-customer-message';
 
 export const metadata = {
   title: "All Courses — Spice & Soul Academy",
 };
 
 type Props = {
-  searchParams: Promise<{ difficulty?: string; region?: string }>;
+  searchParams: Promise<{ difficulty?: string; region?: string; payment?: string }>;
 };
 
 export default async function CoursesPage({ searchParams }: Props) {
-  const { difficulty, region } = await searchParams;
+  const { difficulty, region, payment } = await searchParams;
+  const paymentMessage = billdeskCustomerMessage(payment);
 
   const supabase = await createClient();
   const [{ data }, { data: statsData }] = await Promise.all([
@@ -60,6 +62,7 @@ export default async function CoursesPage({ searchParams }: Props) {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-16">
+      {paymentMessage && <p role="status" className="mb-8 rounded border p-4">{paymentMessage}</p>}
       <div className="mb-14 text-center">
         <div className="eyebrow mb-3">CATALOG</div>
         <h1 className="mb-3 font-display text-[clamp(40px,5vw,60px)] leading-tight tracking-tight text-clove-700">

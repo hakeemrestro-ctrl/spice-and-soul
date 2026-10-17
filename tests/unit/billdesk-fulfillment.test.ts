@@ -6,9 +6,31 @@ vi.mock('../../lib/generate-certificate-pdf',()=>({generateCertificatePdf:mocks.
 vi.mock('../../lib/invoice',()=>({generateInvoicePdf:mocks.pdf}));
 import { fulfillBilldeskOrder } from '../../lib/billdesk-fulfillment';
 import { BILLDESK_STEPS } from '../../lib/billdesk-steps';
-beforeEach(()=>{vi.stubEnv('BILLDESK_ENV','UAT');vi.stubEnv('BILLDESK_UAT_APP_ORIGIN','https://uat.example.invalid');mocks.send.mockResolvedValue({data:{id:'message-fixture'},error:null});mocks.pdf.mockResolvedValue(Buffer.from('fixture-pdf'));vi.spyOn(console,'info').mockImplementation(()=>{});vi.stubGlobal('fetch',vi.fn(()=>{throw new Error('Network forbidden');}));});
+import { mkdir, mkdtemp, readdir } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+beforeEach(()=>{vi.stubEnv('BILLDESK_ENV','PROD');vi.stubEnv('BILLDESK_APP_ORIGIN','https://fixture.example.invalid');mocks.send.mockResolvedValue({data:{id:'message-fixture'},error:null});mocks.pdf.mockResolvedValue(Buffer.from('fixture-pdf'));vi.spyOn(console,'info').mockImplementation(()=>{});vi.stubGlobal('fetch',vi.fn(()=>{throw new Error('Network forbidden');}));});
 afterEach(()=>{vi.restoreAllMocks();vi.resetAllMocks();vi.unstubAllEnvs();vi.unstubAllGlobals();});
 const pending={order_id:'BD_fixture',course_id:'course',amount_cents:10000,customer_email:'private@example.invalid',customer_name:'Private Name',metadata:{paymentGateway:'billdesk'}};
+it('UAT blocked mail fails before fulfillment database effects', async () => {
+  vi.stubEnv('BILLDESK_ENV', 'UAT'); vi.stubEnv('BILLDESK_EMAIL_CAPTURE', '');
+  const { db, p, effects } = database();
+  await expect(fulfillBilldeskOrder(p, 'TRANSACTIONFIXTURE', db)).rejects.toThrow('disabled');
+  expect(db.rpc).not.toHaveBeenCalled(); expect(db.from).not.toHaveBeenCalled();
+  expect(effects).toEqual([]); expect(mocks.send).not.toHaveBeenCalled();
+});
+it('UAT fulfillment records capture evidence, never provider acceptance or delivery', async () => {
+  const base = join(tmpdir(), 'billdesk-uat-capture');
+  await mkdir(base, { recursive: true, mode: 0o700 });
+  const dir = await mkdtemp(join(base, 'fulfillment-'));
+  vi.stubEnv('BILLDESK_ENV', 'UAT'); vi.stubEnv('BILLDESK_UAT_APP_ORIGIN', 'https://uat.example.invalid');
+  vi.stubEnv('VERCEL', ''); vi.stubEnv('BILLDESK_EMAIL_CAPTURE', 'local');
+  vi.stubEnv('BILLDESK_EMAIL_CAPTURE_DIR', dir); vi.stubEnv('BILLDESK_EMAIL_CAPTURE_RECIPIENTS', pending.customer_email);
+  const { db, p, rows } = database();
+  await fulfillBilldeskOrder(p, 'TRANSACTIONFIXTURE', db);
+  for (const step of ['welcome_email', 'invoice_email', 'certificate_email']) expect(rows.get(step)?.result).toMatchObject({ status: 'captured', delivered: false });
+  expect(await readdir(dir)).toHaveLength(3); expect(mocks.send).not.toHaveBeenCalled(); expect(fetch).not.toHaveBeenCalled();
+});
 function database(bundle=false,gift=false){
   const rows=new Map<string,{state:string;result:unknown;owner?:string}>();
   const effects:string[]=[];

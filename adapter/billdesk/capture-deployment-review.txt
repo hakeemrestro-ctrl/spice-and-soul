@@ -1,0 +1,54 @@
+ISOLATED UAT CAPTURE - INSTALLED AND HTTPS VERIFIED 2026-10-17
+
+Execution evidence is in docs/billdesk-uat-release-ledger-2026-10-16.md.
+The receiver and exact HTTPS route are installed; application deployment and its
+secure capture environment configuration remain pending. Instructions below are
+the reviewed design, not authorization to reinstall or replace existing resources.
+
+Capture only: no SMTP, public read/list API, payment requests or production credentials.
+App capture mode remains disabled until private receiver/TLS/recipient checks pass.
+
+Bundle capture-main.ts with the existing build tool into capture.mjs (Node 24 ESM;
+keep node:* builtins external). Do not use Next output as a server-service artifact.
+Review bundle SHA before installation. Unit file targets the observed installed Node
+24.21.0 path; verify this path/version directly again before installation.
+
+Separate account billdesk-mail-uat, code /opt/billdesk-uat-mail-capture (root-owned),
+config /etc/billdesk-uat-mail-capture (root-owned, service-group read only), state
+/var/lib/billdesk-uat-mail-capture (service-owned 0700). Never use adapter state or keys.
+
+Required receiver environment NAMES (no values/secrets in repository):
+ BILLDESK_ENV=UAT
+ BILLDESK_EMAIL_CAPTURE_STATE=/var/lib/billdesk-uat-mail-capture/capture.sqlite
+ BILLDESK_EMAIL_CAPTURE_SECRET (new independent >=32-byte random secret)
+ BILLDESK_EMAIL_CAPTURE_RECIPIENTS (explicit approved addresses, comma-separated)
+
+App configuration after receiver verification:
+ BILLDESK_EMAIL_CAPTURE=https
+ BILLDESK_EMAIL_CAPTURE_URL=https://adapter.hakeemrestro.shop/uat/email-capture
+ BILLDESK_EMAIL_CAPTURE_SECRET (same independent capture secret)
+ BILLDESK_EMAIL_CAPTURE_RECIPIENTS (same approved recipients)
+ Keep BILLDESK_UPSTREAM_ENABLED=false and preview active until approved test window.
+
+Additive TLS routing proposal: exact POST /uat/email-capture => 127.0.0.1:3101;
+limit encoded request size to 25 MiB; no rewrite, redirects, request-body logs,
+header authentication overrides or public data browsing. Installed Caddy cap is
+25MB, which is narrower than the receiver's 25 MiB maximum. Inspect and preserve the
+complete active Caddy routes before preparing a diff. Never replace the Caddyfile
+or reload blindly. Verify service sandbox network restrictions work on this host.
+
+Receiver uses body HMAC, timestamp window, durable replay prevention and payload-
+bound idempotency. SQLite WAL + synchronous FULL. Captures are capped at 100 MiB
+logical payload data; full storage fails closed without deleting existing evidence.
+No automatic capture deletion: retention owner/duration still require a decision.
+Stored HTML/attachments are untrusted private data; never expose as public HTML.
+
+Before activation: synthetic HTTPS capture, tampered auth, stale/replayed request,
+duplicate fresh-nonce retry, changed payload, forbidden recipient, persistence
+reopen and refused outbound-network checks. Only receipt status=captured and
+delivered=false counts; no claim of mail delivery. Service HTTP/runtime tests and
+proxy changes were verified in the approved installation pass; see the ledger for
+fresh runtime evidence and the precise scope of the cgroup egress check.
+
+Production remains untouched. UAT signoff, production merchant provisioning and
+production release review are prerequisites for real customer payments.

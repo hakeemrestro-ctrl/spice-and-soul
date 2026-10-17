@@ -36,8 +36,22 @@ export function validateCreateResponse(value: unknown, expected: { orderId: stri
   const hosted = value.links.filter(l => l.rel === 'redirect');
   if (hosted.length !== 1) return fail();
   const link = hosted[0];
-  if (link.method !== 'POST' || link.href !== allowed.href || !record(link.parameters) ||
-    Object.keys(link.parameters).sort().join(',') !== [...fields].sort().join(',') ||
-    !Object.values(link.parameters).every(v => text(v, 16384))) return fail();
-  return { bdOrderId: value.bdorderid, hostedUrl: link.href as string, hostedParameters: link.parameters as Record<string, string> };
+  // Create Order names this response parameter mercid; the supplied hosted form
+  // contract names the POST field merchantid. Map only that exact UAT profile.
+  const kitProfile = allowed.href === 'https://uat1.billdesk.com/u2/web/v1_2/embeddedsdk' &&
+    [...fields].sort().join(',') === 'bdorderid,merchantid,rdata';
+  let parameters = link.parameters;
+  if (kitProfile && record(parameters) && Object.hasOwn(parameters, 'mercid')) {
+    if (Object.hasOwn(parameters, 'merchantid') || parameters.mercid !== expected.merchantId) return fail();
+    const { mercid, ...rest } = parameters;
+    parameters = { ...rest, merchantid: mercid };
+  }
+  if (link.method !== 'POST' || link.href !== allowed.href || !record(parameters) ||
+    Object.keys(parameters).sort().join(',') !== [...fields].sort().join(',') ||
+    !Object.values(parameters).every(v => text(v, 16384))) return fail();
+  // The hosted form must refer to the same authenticated merchant and order.
+  if (('merchantid' in parameters && parameters.merchantid !== expected.merchantId) ||
+      ('mercid' in parameters && parameters.mercid !== expected.merchantId) ||
+      ('bdorderid' in parameters && parameters.bdorderid !== value.bdorderid)) return fail();
+  return { bdOrderId: value.bdorderid, hostedUrl: link.href as string, hostedParameters: parameters as Record<string, string> };
 }

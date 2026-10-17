@@ -7,6 +7,7 @@ import { verifyJwsToken } from '@/lib/billdesk';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { recordBilldeskRawAudit } from '@/lib/billdesk-audit';
 import { validatePayment } from '@/lib/billdesk-payment';
+import { billdeskFailureHtml } from '@/lib/billdesk-customer-message';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -74,7 +75,12 @@ export async function POST(req: NextRequest) {
     // If transaction explicitly failed:
     if (pending.status === 'failed' && notification.status === '0399') {
       billdeskLog('callback', 'rejected', correlation, Date.now() - started);
-      return NextResponse.redirect(`${APP_URL}/courses?payment=failed`, { status: 303 });
+      return new NextResponse(billdeskFailureHtml(payload.transaction_error_desc, APP_URL), {
+        status: 200,
+        headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store',
+          'Content-Security-Policy': "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+          'Referrer-Policy': 'no-referrer', 'X-Content-Type-Options': 'nosniff' },
+      });
     }
 
     // Otherwise, payment is pending or webhook is in transit (display pending acknowledgement)

@@ -46,7 +46,7 @@ export function auditBilldeskConfig() {
   return { configured: true };
 }
 
-export const generateOrderId = () => `BD_${randomUUID().replaceAll('-', '')}`;
+export const generateOrderId = () => `BD${randomUUID().replaceAll('-', '')}`;
 export const generateTraceId = () => `BD${randomUUID().replaceAll('-', '')}`;
 
 function validateHeader(header: Record<string, unknown>, encrypted: boolean) {
@@ -88,7 +88,8 @@ export async function getBillDeskTransactionStatus(
 ) {
   if (!upstreamEnabled()) throw new Error('UPSTREAM_DISABLED');
   auditBilldeskConfig();
-  const token = await createJwsToken({ mercid: BILLDESK_MERCID, orderid: orderId, refund_details: true });
+  // The published request schema/example encodes this flag as the string "true".
+  const token = await createJwsToken({ mercid: BILLDESK_MERCID, orderid: orderId, refund_details: 'true' });
   if (onRawAudit) {
     await onRawAudit('retrieve_transaction_request', token);
   }

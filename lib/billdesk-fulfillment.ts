@@ -13,6 +13,7 @@ import { PurchaseConfirmationEmail } from '@/components/email-templates/purchase
 import { InvoiceEmail } from '@/components/email-templates/invoice-email';
 import { resend } from './resend';
 import { billdeskAppOrigin } from './billdesk-uat-auth';
+import { assertBilldeskCaptureReady, captureBilldeskEmail } from './billdesk-email-capture';
 
 const filename = (s: string) => s.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-').toLowerCase();
 const escapeHtml = (s: string) => s.replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c]!);
@@ -21,6 +22,11 @@ const sender = { from: 'Spice & Soul Academy <hello@hakeemrestro.shop>', replyTo
 // This path intentionally does not call the shared best-effort fulfillment/email
 // functions. Their Paytm/PayGlocal behavior and logging remain unchanged.
 export async function fulfillBilldeskOrder(pending: PendingOrderRow, txnId: string, db: SupabaseClient) {
+  if (process.env.BILLDESK_ENV === 'UAT') {
+    const recipients = [pending.customer_email];
+    if (pending.metadata?.isGift === 'true' && pending.metadata.giftRecipientEmail) recipients.push(pending.metadata.giftRecipientEmail);
+    assertBilldeskCaptureReady(recipients);
+  }
   const correlation = randomUUID(), started = Date.now();
   const rpc = async (args: Record<string, unknown>) => {
     const { data, error } = await db.rpc('billdesk_step', { p_order_id: pending.order_id, p_txn_id: txnId, ...args });
@@ -94,6 +100,9 @@ export async function fulfillBilldeskOrder(pending: PendingOrderRow, txnId: stri
     // SDK error results are failures too, not just thrown exceptions. Persist
     // provider IDs as acceptance evidence; this never asserts actual delivery.
     const send = async (data: Parameters<typeof resend.emails.send>[0], step: string) => {
+      if (process.env.BILLDESK_ENV === 'UAT') {
+        return captureBilldeskEmail({ ...sender, ...data }, `billdesk/${p.order_id}/${step}`);
+      }
       const result = await resend.emails.send({ ...sender, ...data }, { idempotencyKey: `billdesk/${p.order_id}/${step}` });
       if (result.error || !result.data?.id) throw new Error('Email acceptance unknown');
       return { messageId: result.data.id, status: 'accepted' };

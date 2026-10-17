@@ -38,10 +38,40 @@ function fixture() {
   const fulfill = vi.fn(async () => {});
   const run = async (notification = payload(), response = notification) => payment.processBilldeskPayment(
     await bd.createJwsToken(notification), { store, fulfill, retrieve: vi.fn(async () => response) });
-  return { run, fulfill, state: () => status };
+  return { run, fulfill, store, state: () => status };
 }
 
 describe('BillDesk payment validation and shared callback/webhook processor', () => {
+  for (const refundInfo of [null, {}, 'unknown', [{ refund_status: '0799', refund_amount: '123.45' }],
+    [{ refund_status: '0699', refund_amount: '123.45' }], [{ refund_status: '0799', refund_amount: '1.00' }],
+    [{ refund_status: 'pending' }], [{}]]) {
+    it(`requires review without claiming or fulfilling refund evidence ${JSON.stringify(refundInfo)}`, async () => {
+      const f = fixture();
+      const claim = vi.spyOn(f.store, 'claim');
+      const finish = vi.spyOn(f.store, 'finish');
+      const response = { ...payload(), refundInfo };
+      expect((await f.run(payload(), response)).status).toBe('review');
+      expect(claim).not.toHaveBeenCalled();
+      expect(finish).not.toHaveBeenCalled();
+      expect(f.fulfill).not.toHaveBeenCalled();
+      expect(f.state()).toBe('pending');
+    });
+  }
+  it('accepts an empty refund array after verified Retrieve', async () => {
+    const f = fixture(); const response = { ...payload(), refundInfo: [] };
+    expect((await f.run(payload(), response)).status).toBe('paid');
+    expect(f.fulfill).toHaveBeenCalledTimes(1);
+  });
+  it('generates unique merchant-kit alphanumeric IDs accepted by payment validation', () => {
+    const ids = Array.from({ length: 100 }, () => bd.generateOrderId());
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const orderid of ids) {
+      expect(orderid).toMatch(/^[A-Za-z0-9]{10,35}$/);
+      expect(payment.validatePayment({ ...payload(), orderid }).orderId).toBe(orderid);
+    }
+    expect(bd.generateTraceId()).toMatch(/^[A-Za-z0-9]{10,35}$/);
+    expect(payment.validatePayment(payload()).orderId).toBe('BD_test');
+  });
   it('pending followed by success fulfills once', async () => {
     const f = fixture(); expect((await f.run(payload('0002'))).status).toBe('pending');
     expect(f.fulfill).not.toHaveBeenCalled(); expect((await f.run()).status).toBe('paid');
