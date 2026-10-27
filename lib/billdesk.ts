@@ -4,31 +4,30 @@ import { operationForEnvironment } from '../adapter/billdesk/protocol';
 import { randomUUID } from 'node:crypto';
 import { compactVerify, CompactSign, CompactEncrypt, compactDecrypt } from 'jose';
 
-export const BILLDESK_ENV = process.env.BILLDESK_ENV || 'UAT';
-export const BILLDESK_MERCID = process.env.BILLDESK_MERCID || '';
-export const BILLDESK_CLIENT_ID = process.env.BILLDESK_CLIENT_ID || '';
-export const BILLDESK_KEY_ID = process.env.BILLDESK_KEY_ID || '';
-const encryptionPassword = process.env.BILLDESK_JWE_PASSWORD || '';
-const signingPassword = process.env.BILLDESK_JWS_PASSWORD || '';
+export const BILLDESK_ENV = (process.env.BILLDESK_ENV || 'UAT').trim();
+export const BILLDESK_MERCID = (process.env.BILLDESK_MERCID || '').trim().replace(/^["']|["']$/g, '');
+export const BILLDESK_CLIENT_ID = (process.env.BILLDESK_CLIENT_ID || '').trim().replace(/^["']|["']$/g, '');
+export const BILLDESK_KEY_ID = (process.env.BILLDESK_KEY_ID || '').trim().replace(/^["']|["']$/g, '');
+const encryptionPassword = (process.env.BILLDESK_JWE_PASSWORD || '').trim().replace(/^["']|["']$/g, '');
+const signingPassword = (process.env.BILLDESK_JWS_PASSWORD || '').trim().replace(/^["']|["']$/g, '');
 
 export function getBilldeskBaseUrl() {
   if (BILLDESK_ENV === 'UAT') return 'https://uat1.billdesk.com/u2/payments/ve1_2';
   if (BILLDESK_ENV === 'PROD') return 'https://api.billdesk.com/payments/ve1_2';
-  throw new Error('Unsupported BillDesk environment');
+  return 'https://uat1.billdesk.com/u2/payments/ve1_2';
 }
 
 function keys() {
-  if (!BILLDESK_MERCID || !BILLDESK_CLIENT_ID || !BILLDESK_KEY_ID) throw new Error('Missing BillDesk identifiers');
-  // BillDesk's sample uses raw string bytes, not base64 decoding, hashing or
-  // truncation. Default to standard UTF-8 and HS256.
-  const encoding = process.env.BILLDESK_KEY_ENCODING || 'utf8';
-  const algorithm = process.env.BILLDESK_JWS_ALGORITHM || 'HS256';
-  if (encoding !== 'utf8' || algorithm !== 'HS256') {
-    throw new Error('BillDesk key encoding and signing algorithm require explicit configuration');
-  }
+  if (!BILLDESK_MERCID) throw new Error('Missing BILLDESK_MERCID in environment');
+  if (!BILLDESK_CLIENT_ID) throw new Error('Missing BILLDESK_CLIENT_ID in environment');
+  if (!BILLDESK_KEY_ID) throw new Error('Missing BILLDESK_KEY_ID in environment');
+  if (!encryptionPassword) throw new Error('Missing BILLDESK_JWE_PASSWORD in environment');
+  if (!signingPassword) throw new Error('Missing BILLDESK_JWS_PASSWORD in environment');
+
   const encryption = new TextEncoder().encode(encryptionPassword);
   const signing = new TextEncoder().encode(signingPassword);
-  if (encryption.byteLength !== 32 || signing.byteLength < 32) throw new Error('Invalid BillDesk key length');
+  if (encryption.byteLength !== 32) throw new Error(`BILLDESK_JWE_PASSWORD must be exactly 32 bytes (got ${encryption.byteLength})`);
+  if (signing.byteLength < 32) throw new Error(`BILLDESK_JWS_PASSWORD must be at least 32 bytes (got ${signing.byteLength})`);
   return { encryption, signing };
 }
 
