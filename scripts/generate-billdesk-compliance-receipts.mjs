@@ -1,0 +1,262 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
+function buildReceiptHtml({ isSuccess, details }) {
+  const statusColor = isSuccess ? '#16a34a' : '#dc2626';
+  const statusText = isSuccess ? 'Your transaction is success' : 'Your transaction is failed';
+
+  const iconSvg = isSuccess ? `
+    <svg width="60" height="60" viewBox="0 0 24 24" fill="#16a34a" xmlns="http://www.w3.org/2000/svg">
+      <path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/>
+    </svg>` : `
+    <svg width="60" height="60" viewBox="0 0 24 24" fill="#dc2626" xmlns="http://www.w3.org/2000/svg">
+      <path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v2c0 1.1.9 2 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.58-6.59c.37-.36.59-.86.59-1.41V5c0-1.1-.9-2-2-2zm4 0v12h4V3h-4z"/>
+    </svg>`;
+
+  let rowsHtml = '';
+  if (!isSuccess) {
+    rowsHtml += `
+      <tr>
+        <td class="label-col">Status Description</td>
+        <td class="value-col">${details.statusDescription || 'Transaction not authorized'}</td>
+      </tr>`;
+  }
+
+  rowsHtml += `
+      <tr>
+        <td class="label-col">Purpose of payment</td>
+        <td class="value-col">${details.purposeOfPayment || 'Fee Payment'}</td>
+      </tr>
+      <tr>
+        <td class="label-col">Payment mode</td>
+        <td class="value-col">${details.paymentMode || 'Online payment'}</td>
+      </tr>
+      <tr>
+        <td class="label-col">Amount</td>
+        <td class="value-col">Rs. ${details.amount}</td>
+      </tr>
+      <tr>
+        <td class="label-col">Date</td>
+        <td class="value-col">${details.date}</td>
+      </tr>
+      <tr>
+        <td class="label-col">Transaction Id</td>
+        <td class="value-col">${details.transactionId}</td>
+      </tr>
+      <tr>
+        <td class="label-col">Order Id</td>
+        <td class="value-col">${details.orderId}</td>
+      </tr>`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Acknowledgement — ${details.orderId}</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+      background-color: #f1f5f9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+    .receipt-card {
+      background: #ffffff;
+      width: 100%;
+      max-width: 520px;
+      border: 1px solid #d1d5db;
+      padding: 24px 28px 32px 28px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    .header-section {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #e5e7eb;
+      margin-bottom: 24px;
+    }
+    .crest-logo {
+      width: 68px;
+      height: 68px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      background: #78350f;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      border: 2px solid #b45309;
+    }
+    .crest-logo svg {
+      width: 44px;
+      height: 44px;
+    }
+    .header-text {
+      flex: 1;
+      line-height: 1.35;
+    }
+    .org-title {
+      color: #b91c1c;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+    .org-subtitle {
+      font-size: 11px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 2px;
+    }
+    .org-address {
+      font-size: 10.5px;
+      color: #475569;
+      margin-bottom: 2px;
+    }
+    .org-contact {
+      font-size: 10px;
+      color: #0284c7;
+      word-break: break-all;
+    }
+    .status-section {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .status-icon-wrapper {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+    .status-heading {
+      color: ${statusColor};
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 18px;
+    }
+    .details-heading {
+      color: #111827;
+      font-size: 22px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 14px;
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid #d1d5db;
+      margin: 0 0 22px 0;
+    }
+    .details-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 15.5px;
+    }
+    .details-table tr {
+      border-bottom: none;
+    }
+    .label-col {
+      padding: 10px 0;
+      width: 48%;
+      color: #111827;
+      font-weight: 400;
+      vertical-align: top;
+    }
+    .value-col {
+      padding: 10px 0;
+      width: 52%;
+      color: #111827;
+      font-weight: 400;
+      vertical-align: top;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="receipt-card">
+    <!-- Header with Emblem & Institution Details -->
+    <div class="header-section">
+      <div class="crest-logo">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="50" r="44" stroke="#fef3c7" stroke-width="2"/>
+          <path d="M50 20 L58 36 L76 39 L63 52 L66 70 L50 61 L34 70 L37 52 L24 39 L42 36 Z" fill="#f59e0b"/>
+          <text x="50" y="58" text-anchor="middle" font-family="Georgia, serif" font-size="20" font-weight="bold" fill="#ffffff">H</text>
+        </svg>
+      </div>
+      <div class="header-text">
+        <div class="org-title">HAKEEM RESTAURANT &amp; CULINARY ACADEMY</div>
+        <div class="org-subtitle">SPICE &amp; SOUL ACADEMY (A UNIT OF N K VENTURES)</div>
+        <div class="org-address">E-6, Arera Colony, Bittan Market, Bhopal, Madhya Pradesh - 462016</div>
+        <div class="org-contact">E-Mail: contact@hakeemrestro.shop | Ph: +91 755 427 1234 (www.hakeemrestro.shop)</div>
+      </div>
+    </div>
+
+    <!-- Status Section with Icon and Exact Text -->
+    <div class="status-section">
+      <div class="status-icon-wrapper">
+        ${iconSvg}
+      </div>
+      <div class="status-heading">${statusText}</div>
+    </div>
+
+    <!-- Details Section -->
+    <div class="details-heading">Details</div>
+    <hr class="divider">
+
+    <table class="details-table">
+      <tbody>
+        ${rowsHtml}
+      </tbody>
+    </table>
+  </div>
+
+</body>
+</html>`;
+}
+
+// 1. Success Receipt Data
+const successHtml = buildReceiptHtml({
+  isSuccess: true,
+  details: {
+    purposeOfPayment: 'Fee Payment',
+    paymentMode: 'Online payment',
+    amount: '12499.00',
+    date: '10/27/2026 18:03:10',
+    transactionId: 'USBI6VS004Y3I1',
+    orderId: 'BD_125a86a1883b4cc99feb9f38dcc32297'
+  }
+});
+
+// 2. Failure Receipt Data
+const failureHtml = buildReceiptHtml({
+  isSuccess: false,
+  details: {
+    statusDescription: 'Transaction not authorized',
+    purposeOfPayment: 'Fee Payment',
+    paymentMode: 'Online payment',
+    amount: '12499.00',
+    date: '10/27/2026 18:05:22',
+    transactionId: 'UBDF004Y3F182',
+    orderId: 'BD_fail_1793103411'
+  }
+});
+
+// Write to files
+fs.writeFileSync('billdesk-success-receipt.html', successHtml, 'utf8');
+fs.writeFileSync('billdesk-failure-receipt.html', failureHtml, 'utf8');
+try {
+  fs.writeFileSync('../billdesk-success-receipt.html', successHtml, 'utf8');
+  fs.writeFileSync('../billdesk-failure-receipt.html', failureHtml, 'utf8');
+} catch {}
+
+console.log('Successfully generated BillDesk compliance receipts matching exact friend template!');

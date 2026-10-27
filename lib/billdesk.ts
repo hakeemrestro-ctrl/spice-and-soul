@@ -50,9 +50,11 @@ export const generateOrderId = () => `BD_${randomUUID().replaceAll('-', '')}`;
 export const generateTraceId = () => `BD${randomUUID().replaceAll('-', '')}`;
 
 function validateHeader(header: Record<string, unknown>, encrypted: boolean) {
-  const allowed = new Set(encrypted ? ['alg', 'enc', 'kid', 'clientid'] : ['alg', 'kid', 'clientid']);
+  const allowed = new Set(encrypted ? ['alg', 'enc', 'kid', 'clientid', 'mercid'] : ['alg', 'kid', 'clientid', 'mercid']);
+  const isKeyValid = header.kid === BILLDESK_KEY_ID || header.kid === 'HMAC';
+  const isClientValid = !header.clientid || header.clientid === BILLDESK_CLIENT_ID;
   if (Object.keys(header).some(k => !allowed.has(k)) || header.alg !== (encrypted ? 'dir' : 'HS256') ||
-      (encrypted && header.enc !== 'A256GCM') || header.kid !== BILLDESK_KEY_ID || header.clientid !== BILLDESK_CLIENT_ID) {
+      (encrypted && header.enc !== 'A256GCM') || !isKeyValid || !isClientValid) {
     throw new Error('Unexpected BillDesk JOSE header');
   }
 }

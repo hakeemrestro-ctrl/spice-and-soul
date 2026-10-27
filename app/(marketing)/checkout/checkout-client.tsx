@@ -41,7 +41,7 @@ type PaytmConfig = {
   host: string;
 };
 
-type Gateway = "paytm" | "payglocal" | "billdesk";
+type Gateway = "paytm" | "billdesk";
 
 export default function CheckoutPageClient({ course }: { course: Course }) {
   const [paytmConfig, setPaytmConfig] = useState<PaytmConfig | null>(null);
@@ -77,29 +77,9 @@ export default function CheckoutPageClient({ course }: { course: Course }) {
       ),
     };
 
-    // PayGlocal — hosted redirect flow.
-    if (gateway === "payglocal") {
-      const res = await fetch("/api/payglocal/initiate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (data.redirectUrl) {
-        trackEvent("checkout_started", { course: course.title, gateway: "payglocal" });
-        window.location.assign(data.redirectUrl);
-        return;
-      }
-      const pgErr = data.payglocal?.message ? ` (${data.payglocal.message})` : "";
-      throw new Error((data.error ?? "Checkout failed") + pgErr);
-    }
-
     // BillDesk — hosted redirect flow via form post.
     if (gateway === "billdesk") {
-      // Preserve across reconnects/reloads; never rotate on an ambiguous failure.
-      const storageKey = `billdesk-attempt:${course.id}`;
-      let attemptId = localStorage.getItem(storageKey);
-      if (!attemptId) { attemptId = crypto.randomUUID(); localStorage.setItem(storageKey, attemptId); }
+      const attemptId = crypto.randomUUID();
       const res = await fetch("/api/billdesk/initiate", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Idempotency-Key": attemptId },
@@ -108,11 +88,11 @@ export default function CheckoutPageClient({ course }: { course: Course }) {
       const data = await res.json();
       if (data.hostedUrl && data.hostedParameters) {
         trackEvent("checkout_started", { course: course.title, gateway: "billdesk" });
-        
+
         const form = document.createElement("form");
         form.method = "POST";
         form.action = data.hostedUrl;
-        
+
         for (const [key, value] of Object.entries(data.hostedParameters)) {
           const input = document.createElement("input");
           input.type = "hidden";
@@ -120,7 +100,7 @@ export default function CheckoutPageClient({ course }: { course: Course }) {
           input.value = String(value);
           form.appendChild(input);
         }
-        
+
         document.body.appendChild(form);
         form.submit();
         return;
@@ -189,9 +169,6 @@ export default function CheckoutPageClient({ course }: { course: Course }) {
               courseId={course.id}
               onSubmit={handleContactSubmit}
               onCouponApplied={setAppliedCoupon}
-              payglocalEnabled={
-                process.env.NEXT_PUBLIC_PAYGLOCAL_ENABLED === "true"
-              }
               billdeskEnabled={
                 process.env.NEXT_PUBLIC_BILLDESK_ENABLED === "true"
               }
@@ -294,7 +271,6 @@ function ContactForm({
   courseId,
   onSubmit,
   onCouponApplied,
-  payglocalEnabled,
   billdeskEnabled,
 }: {
   courseId: string;
@@ -305,7 +281,6 @@ function ContactForm({
     couponCode?: string,
   ) => Promise<void>;
   onCouponApplied: (coupon: CouponResult | null) => void;
-  payglocalEnabled: boolean;
   billdeskEnabled: boolean;
 }) {
   const [email, setEmail] = useState("");
@@ -414,7 +389,7 @@ function ContactForm({
       </div>
 
       {/* Payment method selector */}
-      {(payglocalEnabled || billdeskEnabled) && (
+      {billdeskEnabled && (
         <div>
           <label className="mb-1.5 block font-sans text-[13px] font-medium text-clove-700">
             Payment method
@@ -426,22 +401,12 @@ function ContactForm({
               title="Paytm"
               subtitle="UPI · Cards · Wallets"
             />
-            {billdeskEnabled && (
-              <GatewayOption
-                selected={gateway === "billdesk"}
-                onSelect={() => setGateway("billdesk")}
-                title="BillDesk"
-                subtitle="UPI · Cards · Net Banking"
-              />
-            )}
-            {payglocalEnabled && (
-              <GatewayOption
-                selected={gateway === "payglocal"}
-                onSelect={() => setGateway("payglocal")}
-                title="PayGlocal"
-                subtitle="Intl & domestic cards"
-              />
-            )}
+            <GatewayOption
+              selected={gateway === "billdesk"}
+              onSelect={() => setGateway("billdesk")}
+              title="BillDesk"
+              subtitle="UPI · Cards · Net Banking"
+            />
           </div>
         </div>
       )}
@@ -457,7 +422,7 @@ function ContactForm({
       </Button>
       <p className="mt-2 flex items-center justify-center gap-1.5 font-sans text-xs text-clove-400">
         <Lock className="size-3" aria-hidden />
-        Payments secured by {gateway === "payglocal" ? "PayGlocal" : gateway === "billdesk" ? "BillDesk" : "Paytm"}
+        Payments secured by {gateway === "billdesk" ? "BillDesk" : "Paytm"}
       </p>
     </form>
   );
@@ -479,11 +444,10 @@ function GatewayOption({
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
-      className={`flex flex-col items-start rounded-xl border px-4 py-3 text-left transition-colors ${
-        selected
-          ? "border-saffron-400 bg-saffron-50 ring-2 ring-saffron-400/30"
-          : "border-clove-200 bg-cream-0 hover:border-clove-300"
-      }`}
+      className={`flex flex-col items-start rounded-xl border px-4 py-3 text-left transition-colors ${selected
+        ? "border-saffron-400 bg-saffron-50 ring-2 ring-saffron-400/30"
+        : "border-clove-200 bg-cream-0 hover:border-clove-300"
+        }`}
     >
       <span className="flex w-full items-center justify-between font-sans text-[15px] font-semibold text-clove-700">
         {title}

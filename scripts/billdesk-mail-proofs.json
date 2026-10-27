@@ -1,0 +1,109 @@
+{
+  "proof1_createOrderJson": {
+    "mercid": "BDUATV2KRL",
+    "orderid": "BD_1793104699650",
+    "amount": "12499.00",
+    "order_date": "2026-10-27T18:08:19+05:30",
+    "currency": "356",
+    "ru": "https://hakeemrestro.shop/api/billdesk/callback",
+    "additional_info": {
+      "additional_info1": "khushboo@hakeemrestro.shop",
+      "additional_info2": "North Indian Cooking Course",
+      "additional_info3": "Online Masterclass",
+      "additional_info4": "NA",
+      "additional_info5": "NA",
+      "additional_info6": "NA",
+      "additional_info7": "NA"
+    },
+    "itemcode": "DIRECT",
+    "device": {
+      "init_channel": "internet",
+      "ip": "103.211.54.10",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    }
+  },
+  "proof2_createOrderJwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwia2lkIjoiMFNDV0FkRnVCZ0x2IiwiY2xpZW50aWQiOiJiZHVhdHYya3Jsc2oifQ..F15fatU8P62gB9pA.GSJz6rgT-BKL7PRpQfotc1bC4GVYZTmtbSmhH5v24f50-lqrO86sDVipzMySidymbdLZcY_FbBS92lQx223N7i7xdExVXeG7eJaDCmD5xuNAqDLjEBXLC3BVAMj1ahdaP3SYwlHot09QZcH_YTpofGnHA4cHP4uBVlGLQhe84dNb5C3AzXwNkI8dbo1dhrsqxqdna0ps74OWXios8JjPYkW86I3mN3S5vB2J0uRnr-fEtMm97LsIwGRXUZ_YlkJOQc5UxIsV7BWdlA5OWIJluW-JS-hr_wJilmEayBJeIxhcLqMeawavTnv8DOToZ1g4Wvd0b6UNCqARsOSinRGJiTWOrGqrqwTWzOMfN64x-1Fy8MrXSTr0BZhxkpA2P32aN51V2twu4CupMoALBfghQiaZ2xUv1isdrR-c3UQzH4_fKmWC5xA-nNCSnJFJ5SAs5KvtYuo8D1CxQvZrDHAGYRbLCJ58S8mFs8FKdnZVT901BvnsewxdFcIIIYMUiEEwZR_syxUL7ykD3teCfNTsy7Ve09J4JdiP_VlICWzhRKpxB2mwaOgsf3MhX9py5V17Rl23Hq9oARYcvPE9FEkC2JdjAytnr_sYiMKjkNax7Vhssy_RPxklclmIzquQi0qD7PwcbCK2O2qqUvX-w4NTFBoXHBmoNQXaSSwTqTgdot3ytDMrmPKPly7HdjOzjxm3ldmiyujNCjqLB_1A1-3H5gxOOA_nVXD40wYjvbxXCP3X0WRsAYOquHG7BD0UeUKTSSZqfcYnh1BNt90kpUDogA.CG1_28rt98nFAcM6UtPwmA",
+  "proof2_createOrderJws": "eyJhbGciOiJIUzI1NiIsImtpZCI6IjBTQ1dBZEZ1QmdMdiIsImNsaWVudGlkIjoiYmR1YXR2MmtybHNqIn0.ZXlKaGJHY2lPaUprYVhJaUxDSmxibU1pT2lKQk1qVTJSME5OSWl3aWEybGtJam9pTUZORFYwRmtSblZDWjB4Mklpd2lZMnhwWlc1MGFXUWlPaUppWkhWaGRIWXlhM0pzYzJvaWZRLi5GMTVmYXRVOFA2MmdCOXBBLkdTSno2cmdULUJLTDdQUnBRZm90YzFiQzRHVllaVG10YlNtaEg1djI0ZjUwLWxxck84NnNEVmlwek15U2lkeW1iZExaY1lfRmJCUzkybFF4MjIzTjdpN3hkRXhWWGVHN2VKYURDbUQ1eHVOQXFETGpFQlhMQzNCVkFNajFhaGRhUDNTWXdsSG90MDlRWmNIX1lUcG9mR25IQTRjSFA0dUJWbEdMUWhlODRkTmI1QzNBelh3TmtJOGRibzFkaHJzcXhxZG5hMHBzNzRPV1hpb3M4SmpQWWtXODZJM21OM1M1dkIySjB1Um5yLWZFdE1tOTdMc0l3R1JYVVpfWWxrSk9RYzVVeElzVjdCV2RsQTVPV0lKbHVXLUpTLWhyX3dKaWxtRWF5QkplSXhoY0xxTWVhd2F2VG52OERPVG9aMWc0V3ZkMGI2VU5DcUFSc09TaW5SR0ppVFdPckdxcnF3VFd6T01mTjY0eC0xRnk4TXJYU1RyMEJaaHhrcEEyUDMyYU41MVYydHd1NEN1cE1vQUxCZmdoUWlhWjJ4VXYxaXNkclItYzNVUXpINF9mS21XQzV4QS1uTkNTbkpGSjVTQXM1S3Z0WXVvOEQxQ3hRdlpyREhBR1lSYkxDSjU4UzhtRnM4RktkblpWVDkwMUJ2bnNld3hkRmNJSUlZTVVpRUV3WlJfc3l4VUw3eWtEM3RlQ2ZOVHN5N1ZlMDlKNEpkaVBfVmxJQ1d6aFJLcHhCMm13YU9nc2YzTWhYOXB5NVYxN1JsMjNIcTlvQVJZY3ZQRTlGRWtDMkpkakF5dG5yX3NZaU1LamtOYXg3Vmhzc3lfUlB4a2xjbG1JenF1UWkwcUQ3UHdjYkNLMk8ycXFVdlgtdzROVEZCb1hIQm1vTlFYYVNTd1RxVGdkb3QzeXRETXJtUEtQbHk3SGRqT3pqeG0zbGRtaXl1ak5DanFMQl8xQTEtM0g1Z3hPT0FfblZYRDQwd1lqdmJ4WENQM1gwV1JzQVlPcXVIRzdCRDBVZVVLVFNTWnFmY1luaDFCTnQ5MGtwVURvZ0EuQ0cxXzI4cnQ5OG5GQWNNNlV0UHdtQQ.13idgtDhxxQP4Lbk7UNzpyVdZIRtyrS2IHPP-YUeOB8",
+  "proof2_traceId": "BD8ab773549baf4b2b8155a5a198e858bc",
+  "proof2_timestamp": "20261027180819",
+  "proof3_createOrderResponseEncoded": "eyJhbGciOiJIUzI1NiIsImNsaWVudGlkIjoiYmR1YXR2MmtybHNqIiwia2lkIjoiSE1BQyJ9.ZXlKamJHbGxiblJwWkNJNkltSmtkV0YwZGpKcmNteHphaUlzSW1WdVl5STZJa0V5TlRaSFEwMGlMQ0poYkdjaU9pSmthWElpTENKcmFXUWlPaUl3VTBOWFFXUkdkVUpuVEhZaWZRLi45aGdMbmNoLWpWN0JmalFxLmtTZm9rZkFtT3Fkc3JZZHJxWTJEdEdST25wOG9NSDZFNTJvb2lzT3l2QmdpMDZwU29LclBaelp5dDBFYV9xY3dkUkktTFlCN2RFbkNlQ1BSM0JiSkY1SHJ1RFdaYUJ0b2lNbTMxMk83NURPZmxWNW02cV9PX3hpWHpoeDlXdVRxanFuYVBBcVJENElCR1R1YXZOVUVDTXF1M1lNNmlMa3JMSEloU0RvdmZRNGE4ckMteTNZQ2ZYaDVoSkxGM2h2alNsQ0s2MmRNTHEtQU05UUIwQjNiNmRIMGpzS0tvUWZ0dlcxZElzT2swSmZlQ2tzUFQ1THc4Uy1nZkJWZlpXNFRxWXI4UTBYZk9JU2lEWkdoZXVpVnBnRVk0WFktZzZLcUJlaWo5S0tuWEU1TW8zTlhNTzJ4VzBhTzdRdGlZZGRhZVNYdXNEYXZsX0NLVEZueTA2VUVNYnVhTnRtUzJmQXhaNFJTTXlQY0toN1dZVTBaWHhmeFRQUjBxaW9CUGstbHNxUjBBUVZlVmpwSGg5cGhSWXZVekZtbG9oT2E5VXd5SHJIT0RfMDJGQkJhb0dTZ1Vlc0daOEo5Q0dTTXJTR0sxY2JnOGpGVGNVVENJeWw1X2NiWTRhMlMtMHZ4TnhGSXRMQy1RcHQ2MXZkNlRzN2VWOEQwM2JHaEx1bVY2b1p3NWZQWXR4bmd0NWdQbnZPbXg1eThSRVlINVpKMTdPSFhOYmhuWXJxTGpHSUtWOUdRajI5ejhhM1F5S2k4RzZQdVhaMXBBSU5GTFFfX1FpQm5idUlLeFlhdGlIeWdkN0ZfVlM2eUhrV3piRXNoU0dwa0ExeXpsVkJiVEttTEU2RkV4VE42TU5EcGFEMGxXN250RGw0Zl92ZDlhaHltcVJ5VDU4UDhnS1Jva3NxUkdqdlpDRFhoU0l2bzNHM0xTTFpPbXhCTnJhR2xUQzRPZEdMNE5VVTBSWndHTEo0M1VsREpvQ2VwcUVVbmJERjU2dnJTNTRLTzM1dmNpS2U5UU9YRFdma0NneHdaMGg5dlhPUWFWLVZqLXVmZUhpWEFWNXlfMk9wR2ZjZmRJakRyWWxJbkVkcjl0QnI0a0FwMWg0b3R4YlZEd2wxVnRNeHE0YjR6SVhtRTVmUWc2ZFRIQWhIYmowNTFnODJvQkk4bGxvNmc5aGJlaUQyS0kzZWdfVElaYW9GNmFXdjlNQy1veWUzUjJhZ2ZzZlRuUGM5NjdYd1NGMDZfZlBMMngtM2RHR0tVUUkwTkVmREtpbUkxTmRqcTcxRFp0WFN6WnlVY1lSTEdzc2c5QXZjeTRybDBrWEdiVUkxa1J2Q0g0QXlseFIyVXlPcDM5QmMwSkZXcW9sSktNY3BMNk5BNGJvcEt5bzlTQm8wU0ZaZHZ1akhFN19rdWZzMXdKNHpxSlpUd3dDTW9Bblc1UGZ4NzdoWG5IQlJaNVloQXRCQ3o0d3JoQXYzd0NvZEYxY1FaNGMtTWxtckNtNHZsTmctZkMtakt3QnlBTndHcUQxUDJ0eEpldXRvaTdLNk02UHpDRzExRWFaNU8tY1F0bkxYeWRhakZQTVNNQTRDVm5wWjRKclJBbXhoOGxaQ0JyeU5FZHZyajFfQUZGdkRpdUdxeE1kdHRfSjlGd2wxeDk3cU43d2tUa3FJcDZHTE5fQTZlOTdTY05ISGl0VDgzR2ltSjhYemZrdmZ4c0xfd2V6ZzYyRG00ZTFySDN6NlhNUWhLMjA1WFFJSU4zMFN1bEsyRElMR2djbUU2VlVPS1Y5WndNV01BbVJyMnRaeU9DX3pnUUx3Q0VWUEdRYjJISm9oa2VfdmtURGhhWlBycE9YSk1ocURPZVd5ZXJmVmt2ZTFKM2xlSnVPbEl5aG1aTHlFdDM2SU1lSnJtLVRyaGxDcm5lVV9CSFZMb3lHRTlVMmY4UmFNVXNVSkdQRTQxM0JXOUc0VFNXZ2JRbXBNQVMtQmhQZVAzendLZzBnejdNblpCOF9Bc3FFT05feXpqc2FId1ZfWFdSWXJlbkxjMGgzOW1zdU9pRU9aZGdObVM5dDBZTDdvTXJiWjFYcHJ5N21lbUUyNnpiYnVMbk9XM1ZtVGxHWTZReG9ORVEzaFJPNGNKdDh0cklFbklXU1NIcC1SS1RRRnRIdU05VWFIMS1Ub24xamlZSGxaWEVJN1NJUlVWa2ZYeGlfeVBrWGJTZFVMdHQ1a0lIR2VTOFpDSldIQjZ6ZTRocTh0Vjc1WXRoX0hWUE92Ni12Z0NFSm1XMEg0aWVjRnJrU18tSnkycGk4cHFUaUh5NU14OXU4M2dGRDdSOW9KRzF2MUx0VlpUOEl5YUZCS0JaUnlsWlZ6cXpkOUhWc0NLOUcyMGJ1dExfYnc0dGlsYVFTdE92ZmwtUUQ2ZjR2MjAzLWhvRFFTc2hTU1dZZXEyNjI3MFZINVJYOWVic3drazJWdF9pZDRRQVM0Ry1pZEdNZUFsbDVUdjcyMXRMMG1oZnFIVm43S3BYWkh1ZzBMeWpQM2dQX1lFUFZPQ0wwRHBjVXF6OFdMZXo1YVJ6aXVLaVRDRUR5TjdlNVNXRVNQb2dETUlGOUM0Ujh3eEJaZExSeU9jREhtT3RQNC1vQlQxOXJWSGFwY3ZRQnlLQXo5b3czSzhvbS1oTmsteTIzSnZkT05uaWhGMk9wSjhvcEFCcm1zeXRSdGltTFBKNTV5ZF9GQk1OdFh4cUdSSTJnNmRTMVNzVkdwRTlZUmxoYUVHLmZWOUZENGI4SkNqRUFqSG0wX1JlTWc.dqVLusFYksOr5_UMiUCemsm4GEJdrdJ_ZFDFhXe2pFU",
+  "proof3_createOrderResponseDecoded": {
+    "objectid": "order",
+    "orderid": "BD_1793104699650",
+    "bdorderid": "OA8624QVXC39IMVM",
+    "mercid": "BDUATV2KRL",
+    "order_date": "2026-10-27T18:08:19+05:30",
+    "amount": "12499.00",
+    "currency": "356",
+    "ru": "https://hakeemrestro.shop/api/billdesk/callback",
+    "additional_info": {
+      "additional_info1": "khushboo@hakeemrestro.shop",
+      "additional_info2": "North Indian Cooking Course",
+      "additional_info3": "Online Masterclass",
+      "additional_info4": "NA",
+      "additional_info5": "NA",
+      "additional_info6": "NA",
+      "additional_info7": "NA",
+      "additional_info8": "NA",
+      "additional_info9": "NA",
+      "additional_info10": "NA"
+    },
+    "itemcode": "DIRECT",
+    "createdon": "2026-10-27T18:08:19+05:30",
+    "next_step": "redirect",
+    "links": [
+      {
+        "href": "https://www.billdesk.com/pgi/ve1_2/orders/BD_1793104699650",
+        "rel": "self",
+        "method": "GET"
+      },
+      {
+        "href": "https://uat1.billdesk.com/u2/web/v1_2/embeddedsdk",
+        "rel": "redirect",
+        "method": "POST",
+        "parameters": {
+          "mercid": "BDUATV2KRL",
+          "bdorderid": "OA8624QVXC39IMVM",
+          "rdata": "4382f6821689fbfafabc63507a7a4b0cdde91f4ee453d241458a3e840958bc7a3c6f96de428b7c669a6e286e6fd19cf4f2aac0f56c911c272f86908739042d9cfb9e0a.4145535f55415431"
+        },
+        "valid_date": "2026-10-27T18:38:19+05:30",
+        "headers": {
+          "authorization": "OToken ba300d7135fc9f2b9eab3a79751c6c7162e269d9d3b342dfa0a4bd6bbba04739a49dca5c08b1e3d39a536f03306893f2b6b65a28af90932e0ece21bed3a5954aa71400481b91bd5ea9591ad920e065746e8082793ded3e49de7cab296637f4a91cabce814785ffe71711dba0d7f0675f7d5dd0b1659bde369c34112038c93a62d9d270f93683d5e8e77b7b445fc723a357ca8fe62140d052b28bb262c0.4145535f55415431;aHR0cHM6Ly91YXQxLmJpbGxkZXNrLmNvbS91Mg=="
+        }
+      }
+    ],
+    "status": "ACTIVE"
+  },
+  "proof5_retrieveJson": {
+    "mercid": "BDUATV2KRL",
+    "orderid": "BD_125a86a1883b4cc99feb9f38dcc32297"
+  },
+  "proof5_retrieveJwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwia2lkIjoiMFNDV0FkRnVCZ0x2IiwiY2xpZW50aWQiOiJiZHVhdHYya3Jsc2oifQ..xvoPd5feiBbGYzO3.Jxzl9O64rnE3-qDZ4S3Vs-FsMnhnPRkrA8lEkCNbVvCG7MQD27nBqZoyJ0dGzwclUUWbG_Cu5rTAjEUIDxwxbrOekcoJW98.1Yi3Iie-UzjMeE8B5_FkpQ",
+  "proof5_retrieveJws": "eyJhbGciOiJIUzI1NiIsImtpZCI6IjBTQ1dBZEZ1QmdMdiIsImNsaWVudGlkIjoiYmR1YXR2MmtybHNqIn0.ZXlKaGJHY2lPaUprYVhJaUxDSmxibU1pT2lKQk1qVTJSME5OSWl3aWEybGtJam9pTUZORFYwRmtSblZDWjB4Mklpd2lZMnhwWlc1MGFXUWlPaUppWkhWaGRIWXlhM0pzYzJvaWZRLi54dm9QZDVmZWlCYkdZek8zLkp4emw5TzY0cm5FMy1xRFo0UzNWcy1Gc01uaG5QUmtyQThsRWtDTmJWdkNHN01RRDI3bkJxWm95SjBkR3p3Y2xVVVdiR19DdTVyVEFqRVVJRHh3eGJyT2VrY29KVzk4LjFZaTNJaWUtVXpqTWVFOEI1X0ZrcFE.fl_OmeXa2FWbDkpbyR8-uurEldG1BfB3Gg3lPoB304Y",
+  "proof5_traceId": "BDc0b8cf2200174c21a73128401c07f887",
+  "proof5_timestamp": "20261027180819",
+  "proof6_retrieveResponseEncoded": "eyJhbGciOiJIUzI1NiIsImNsaWVudGlkIjoiYmR1YXR2MmtybHNqIiwia2lkIjoiSE1BQyJ9.ZXlKamJHbGxiblJwWkNJNkltSmtkV0YwZGpKcmNteHphaUlzSW1WdVl5STZJa0V5TlRaSFEwMGlMQ0poYkdjaU9pSmthWElpTENKcmFXUWlPaUl3VTBOWFFXUkdkVUpuVEhZaWZRLi55ZU9aSFlCcjk3MndTSWNiLkpQVmFleC13ZjF1eG9haWZlWXBGQTZZdjc0NzNLa21CRUFBRzlUbnBHUlZOUVRvNXczaFc2bzdoa0FKbm94UnQ0Z0s2UnBOT1hYNklEdjc4UEhKMEhLOVE3WF85VjJTM2RXODZSYXFyck9ZMkNXa0tOb2dUS2kxMjR1NTh2ak1RTDhtYVhJb0NjdS11bzl6SGFENDliU0tyazVFRWd5Uk9Zd1BvVlZ6NzdLTmtvSkZXdGtGbE90OGRZR180eERWbWxSdU1mbm5ySjZBaWw1UUxHMEx0NnVvTFllelF3UFlQdU5vdTJfTTUySnBCamRvSGxGUzBUVnlXNWJmR054ZHZibEhiSXUxcnFRTEJnSXI2MWFVNEVXaEZhdGxIXy1rNzRPczFjZXhPNzh3YXQ2eUFjTU5PdldwRWNDM0Nsc2FfYlhCOWNlMzQxcFpmMGFNXzVxOWpPTUZ3X0J6cjdDanhUU3A2Z25mbHBjc2oyek45ZC1WaDVJTEtiTjFEbTYtLVpaeXhpamRSdThxb2w0c2wzQWl4eXVXSWU5NVE2UjFOajFxMl9YMmlMVkEtUkV4VHdZWThrSUNpSHpHRThyeDBLN3A0dGlDZXpwV1BQQkprcHUydGhKLWpCdHVyVDNfVGRZdEVLZERMMzVGRUluc2R3UHJtREltbzlYOGNHSkpWWEx0ZkVaSXNBZjBtT3Vobm9LUm5wc0dicVRuWlh2QUQzaFRJV3pkUmlxR3BVMXgxU09wSDhjWWlhaWx2SFF1azlLQmhkWmotMFh4ZGtLS3lmaThvTEZydXA2eGZ4RFBZTi1FZGdUMzhJVUZkNWRFcTdNSktheEFWTHFQdEtUc3ktM3RCRHZiQUs0Ujdwb0xtQUZCUGtHRDEzUjNoSTVvMGNWRTYtR0VFalZ1czRPbEpEZ254QXdKcjhJQlM3OFQyZ2hIMUQxa1U3SndmaGd2dVR1TFlWVUNPMVR4Tmctd1pUcDJJUGY2RjVsVFprYnhRdXpMM3RvbE43MDNoTVIwM1lqcG5jUnFwNHdlOTNya0hIZ2I5akR2QlNMU1RNR2dGRnVIVDZGaVlaU09CT1lqS0dMLTE0NUxmLml1SFVoU2RKR0h2OHU4VEt0cl9ZSXc.xGuz7-XoZzZm5lS1TvrhTf9BKx915HFI8zKEJ65yOTo",
+  "proof6_retrieveResponseDecoded": {
+    "objectid": "transaction",
+    "transactionid": "USBI6VS004Y3I1",
+    "orderid": "BD_125a86a1883b4cc99feb9f38dcc32297",
+    "mercid": "BDUATV2KRL",
+    "transaction_date": "2026-10-27T18:03:10+05:30",
+    "amount": "12499.00",
+    "surcharge": "0.00",
+    "discount": "0.00",
+    "charge_amount": "12499.00",
+    "currency": "356",
+    "ru": "https://hakeemrestro.shop/api/billdesk/callback",
+    "txn_process_type": "nb",
+    "bankid": "SBI",
+    "itemcode": "DIRECT",
+    "bank_ref_no": "BILLDESK12",
+    "auth_status": "0300",
+    "transaction_error_code": "TRS0000",
+    "transaction_error_desc": "Transaction Successful",
+    "transaction_error_type": "success",
+    "payment_method_type": "netbanking",
+    "payment_category": "01"
+  }
+}
