@@ -105,7 +105,8 @@ export default function CheckoutPageClient({ course }: { course: Course }) {
         form.submit();
         return;
       }
-      throw new Error(data.error ?? "Checkout failed");
+      const errorMsg = data.details ? `${data.error}: ${data.details}` : (data.error ?? "Checkout failed");
+      throw new Error(errorMsg);
     }
 
     // Paytm — All-in-One JS modal flow.

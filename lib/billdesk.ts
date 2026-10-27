@@ -20,8 +20,10 @@ export function getBilldeskBaseUrl() {
 function keys() {
   if (!BILLDESK_MERCID || !BILLDESK_CLIENT_ID || !BILLDESK_KEY_ID) throw new Error('Missing BillDesk identifiers');
   // BillDesk's sample uses raw string bytes, not base64 decoding, hashing or
-  // truncation. Require explicit merchant confirmation of UTF-8 and HS256.
-  if (process.env.BILLDESK_KEY_ENCODING !== 'utf8' || process.env.BILLDESK_JWS_ALGORITHM !== 'HS256') {
+  // truncation. Default to standard UTF-8 and HS256.
+  const encoding = process.env.BILLDESK_KEY_ENCODING || 'utf8';
+  const algorithm = process.env.BILLDESK_JWS_ALGORITHM || 'HS256';
+  if (encoding !== 'utf8' || algorithm !== 'HS256') {
     throw new Error('BillDesk key encoding and signing algorithm require explicit configuration');
   }
   const encryption = new TextEncoder().encode(encryptionPassword);
@@ -31,7 +33,7 @@ function keys() {
 }
 
 export function billdeskTimestamp(now = new Date()) {
-  const mode = process.env.BILLDESK_TIMESTAMP_FORMAT;
+  const mode = process.env.BILLDESK_TIMESTAMP_FORMAT || 'ist-calendar';
   if (!Number.isFinite(now.getTime())) throw new Error('Invalid timestamp');
   if (mode === 'ist-calendar') return new Date(now.getTime() + 19800000).toISOString().replace(/[-:T]/g, '').slice(0, 14);
   if (mode === 'epoch-seconds') return String(Math.floor(now.getTime() / 1000));

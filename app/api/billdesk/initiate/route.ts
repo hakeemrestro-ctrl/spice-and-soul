@@ -64,10 +64,11 @@ async function initiate(req: NextRequest) {
   try {
     auditBilldeskConfig();
     hostedProfile();
-  } catch {
+  } catch (err: any) {
+    console.error('BillDesk configuration error:', err?.message || err);
     billdeskLog('initiate', 'rejected', correlationId, Date.now() - started);
     return NextResponse.json(
-      { error: "Payment gateway misconfigured. Contact support." },
+      { error: "Payment gateway misconfigured. Contact support.", details: err?.message || 'Config audit failed' },
       { status: 500 },
     );
   }

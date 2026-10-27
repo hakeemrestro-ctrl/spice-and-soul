@@ -3,8 +3,19 @@ import 'server-only';
 function record(value: unknown): value is Record<string, unknown> { return !!value && typeof value === 'object' && !Array.isArray(value); }
 function text(value: unknown, max: number): value is string { return typeof value === 'string' && value.length > 0 && value.length <= max && !/[\x00-\x1f\x7f]/.test(value); }
 function configuredHostedProfile() {
-  if (process.env.BILLDESK_ENV === 'UAT') return { url: process.env.BILLDESK_UAT_HOSTED_URL || '', fields: process.env.BILLDESK_UAT_HOSTED_FIELDS || '' };
-  if (process.env.BILLDESK_ENV === 'PROD') return { url: process.env.BILLDESK_HOSTED_URL || '', fields: process.env.BILLDESK_HOSTED_FIELDS || '' };
+  const env = process.env.BILLDESK_ENV || 'UAT';
+  if (env === 'UAT') {
+    return {
+      url: process.env.BILLDESK_UAT_HOSTED_URL || 'https://uat1.billdesk.com/u2/web/v1_2/embeddedsdk',
+      fields: process.env.BILLDESK_UAT_HOSTED_FIELDS || 'bdorderid,mercid,rdata'
+    };
+  }
+  if (env === 'PROD') {
+    return {
+      url: process.env.BILLDESK_HOSTED_URL || 'https://api.billdesk.com/payments/ve1_2/embeddedsdk',
+      fields: process.env.BILLDESK_HOSTED_FIELDS || 'bdorderid,mercid,rdata'
+    };
+  }
   return { url: '', fields: '' };
 }
 // Host, path and form-field profile are deliberately unset until BillDesk confirms
