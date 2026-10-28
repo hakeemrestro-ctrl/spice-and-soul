@@ -117,12 +117,8 @@ export default async function BilldeskReceiptPage({
     }
   }
 
-  let paymentMode = params.mode || 'Online payment';
-  if (!params.mode && fileData?.payment_method_type) {
-    const method = String(fileData.payment_method_type).toUpperCase();
-    const bank = fileData.bankid ? ` - ${fileData.bankid}` : '';
-    paymentMode = `Online payment (${method}${bank})`;
-  }
+  // Per BillDesk UAT checklist 8.i: Payment mode must be 'Online payment' (Do not show as Card, Net Banking etc)
+  const paymentMode = 'Online payment';
 
   const purpose = params.purpose || 'Culinary Course / Fee Payment';
   const statusDesc =

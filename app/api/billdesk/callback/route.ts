@@ -137,12 +137,8 @@ export async function GET(req: NextRequest) {
     fileData?.transaction_error_desc ||
     (isSuccess ? 'Transaction Successful' : 'Transaction not authorized');
 
-  let paymentMode = searchParams.get('mode') || 'Online payment';
-  if (!searchParams.get('mode') && fileData?.payment_method_type) {
-    const method = String(fileData.payment_method_type).toUpperCase();
-    const bank = fileData.bankid ? ` - ${fileData.bankid}` : '';
-    paymentMode = `Online payment (${method}${bank})`;
-  }
+  // Per BillDesk checklist 8.i: Payment mode must be 'Online payment' (Do not show as Card, Net Banking etc)
+  const paymentMode = 'Online payment';
 
   const purpose = searchParams.get('purpose') || 'Culinary Course / Fee Payment';
 
@@ -325,14 +321,8 @@ export async function POST(req: NextRequest) {
     (isSuccess ? 'Transaction Successful' : 'Transaction not authorized')
   );
 
-  let paymentMode = 'Online payment';
-  const methodType = transactionData?.payment_method_type || directFormData.payment_method_type;
-  if (methodType) {
-    const method = String(methodType).toUpperCase();
-    const bankId = transactionData?.bankid || directFormData.bankid;
-    const bank = bankId ? ` - ${bankId}` : '';
-    paymentMode = `Online payment (${method}${bank})`;
-  }
+  // Per BillDesk checklist 8.i: Payment mode must be 'Online payment' (Do not show as Card, Net Banking etc)
+  const paymentMode = 'Online payment';
 
   // 6. Look up Course Title from Supabase for accurate purpose
   let purpose = 'Culinary Course / Fee Payment';
