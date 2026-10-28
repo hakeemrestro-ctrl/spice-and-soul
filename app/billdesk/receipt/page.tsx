@@ -9,12 +9,33 @@ export const metadata = {
 
 interface ReceiptSearchParams {
   status?: string;
+  auth_status?: string;
+  authStatus?: string;
   orderId?: string;
+  orderid?: string;
   txnId?: string;
+  txnid?: string;
   amount?: string;
   date?: string;
   purpose?: string;
   desc?: string;
+  mode?: string;
+}
+
+function loadLatestTransaction(): Record<string, any> | null {
+  const candidates = [
+    path.resolve(process.cwd(), 'latest-transaction.json'),
+    path.resolve(process.cwd(), 'spice-and-soul', 'latest-transaction.json'),
+    path.resolve(process.cwd(), '..', 'latest-transaction.json'),
+  ];
+  for (const p of candidates) {
+    try {
+      if (fs.existsSync(p)) {
+        return JSON.parse(fs.readFileSync(p, 'utf8'));
+      }
+    } catch {}
+  }
+  return null;
 }
 
 export default async function BilldeskReceiptPage({
@@ -24,38 +45,59 @@ export default async function BilldeskReceiptPage({
 }) {
   const params = await searchParams;
 
-  // Fallback to latest-transaction.json in development if params are not fully populated
-  let fileData: Record<string, any> | null = null;
-  if (process.env.NODE_ENV === 'development') {
-    try {
-      const jsonPath = path.join(process.cwd(), 'latest-transaction.json');
-      if (fs.existsSync(jsonPath)) {
-        fileData = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
-      }
-    } catch {
-      // ignore
-    }
-  }
+  const fileData = loadLatestTransaction();
 
-  const isSuccess =
-    params.status === 'success' ||
-    (params.status !== 'failure' && (fileData?.auth_status === '0300' || !params.status));
+  // Strict auth_status check:
+  // "0300" is strictly Success
+  // "0399" is strictly Failure
+  const rawAuthStatus = String(
+    params.auth_status ||
+    params.authStatus ||
+    fileData?.auth_status ||
+    ''
+  ).trim();
+
+  const statusParam = String(
+    params.status ||
+    ''
+  ).trim().toLowerCase();
+
+  const errorType = String(
+    fileData?.transaction_error_type ||
+    ''
+  ).trim().toLowerCase();
+
+  let isSuccess = false;
+  if (rawAuthStatus === '0300') {
+    isSuccess = true;
+  } else if (rawAuthStatus === '0399' || rawAuthStatus === '0499' || (rawAuthStatus && rawAuthStatus !== '0300')) {
+    isSuccess = false;
+  } else if (statusParam === 'success') {
+    isSuccess = true;
+  } else if (statusParam === 'failure' || statusParam === 'failed') {
+    isSuccess = false;
+  } else if (errorType === 'success') {
+    isSuccess = true;
+  }
 
   const orderId =
     params.orderId ||
-    (isSuccess ? fileData?.orderid : null) ||
-    (isSuccess ? 'BD_125a86a1883b4cc99feb9f38dcc32297' : 'BD_fail_1793103411');
+    params.orderid ||
+    fileData?.orderid ||
+    'BD_' + Date.now();
 
   const txnId =
     params.txnId ||
-    (isSuccess ? (fileData?.transactionid || fileData?.bank_ref_no) : null) ||
-    (isSuccess ? 'USBI6VS004Y3I1' : 'UBDF004Y3F182');
+    params.txnid ||
+    fileData?.transactionid ||
+    fileData?.bank_ref_no ||
+    (isSuccess ? 'TXN_' + Date.now() : 'FAILED');
 
   const rawAmount =
     params.amount ||
     fileData?.amount ||
     fileData?.charge_amount ||
-    '12499.00';
+    '100.00';
   const amount = String(rawAmount).replace(/^(Rs\.?|₹)\s*/i, '').trim();
 
   let dateStr = params.date;
@@ -69,17 +111,24 @@ export default async function BilldeskReceiptPage({
         dateStr = String(fileData.transaction_date);
       }
     } else {
-      dateStr = isSuccess ? '10/27/2026 18:03:10' : '10/27/2026 18:05:22';
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, '0');
+      dateStr = `${pad(now.getMonth() + 1)}/${pad(now.getDate())}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
     }
   }
 
-  const purpose = params.purpose || 'Fee Payment';
+  let paymentMode = params.mode || 'Online payment';
+  if (!params.mode && fileData?.payment_method_type) {
+    const method = String(fileData.payment_method_type).toUpperCase();
+    const bank = fileData.bankid ? ` - ${fileData.bankid}` : '';
+    paymentMode = `Online payment (${method}${bank})`;
+  }
+
+  const purpose = params.purpose || 'Culinary Course / Fee Payment';
   const statusDesc =
     params.desc ||
-    (isSuccess
-      ? 'Transaction Successful'
-      : (fileData && fileData.auth_status !== '0300' ? fileData.transaction_error_desc : null)) ||
-    'Transaction not authorized';
+    fileData?.transaction_error_desc ||
+    (isSuccess ? 'Transaction Successful' : 'Transaction not authorized');
 
   return (
     <div
@@ -214,7 +263,7 @@ export default async function BilldeskReceiptPage({
                 Payment mode
               </td>
               <td style={{ padding: '10px 0', color: '#111827', fontWeight: 400, verticalAlign: 'top' }}>
-                Online payment
+                {paymentMode}
               </td>
             </tr>
             <tr>

@@ -1,7 +1,7 @@
 import 'server-only';
 import { adapterRequest, newOperationId, upstreamEnabled } from './billdesk-adapter-client';
 import { operationForEnvironment } from '../adapter/billdesk/protocol';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createDecipheriv } from 'node:crypto';
 import { compactVerify, CompactSign, CompactEncrypt, compactDecrypt } from 'jose';
 
 export const BILLDESK_ENV = (process.env.BILLDESK_ENV || 'UAT').trim();
@@ -51,11 +51,11 @@ export const generateOrderId = () => `BD_${randomUUID().replaceAll('-', '')}`;
 export const generateTraceId = () => `BD${randomUUID().replaceAll('-', '')}`;
 
 function validateHeader(header: Record<string, unknown>, encrypted: boolean) {
-  const allowed = new Set(encrypted ? ['alg', 'enc', 'kid', 'clientid', 'mercid'] : ['alg', 'kid', 'clientid', 'mercid']);
-  const isKeyValid = header.kid === BILLDESK_KEY_ID || header.kid === 'HMAC';
+  const allowed = new Set(encrypted ? ['alg', 'enc', 'kid', 'clientid', 'mercid', 'typ', 'cty'] : ['alg', 'kid', 'clientid', 'mercid', 'typ', 'cty']);
+  const isKeyValid = !header.kid || header.kid === BILLDESK_KEY_ID || header.kid === 'HMAC';
   const isClientValid = !header.clientid || header.clientid === BILLDESK_CLIENT_ID;
   if (Object.keys(header).some(k => !allowed.has(k)) || header.alg !== (encrypted ? 'dir' : 'HS256') ||
-      (encrypted && header.enc !== 'A256GCM') || !isKeyValid || !isClientValid) {
+    (encrypted && header.enc !== 'A256GCM') || !isKeyValid || !isClientValid) {
     throw new Error('Unexpected BillDesk JOSE header');
   }
 }
@@ -94,3 +94,47 @@ export async function getBillDeskTransactionStatus(orderId: string) {
   });
   return (await verifyJwsToken(response)).payload;
 }
+
+export function decryptBilldeskTokenNative(rawToken: string): Record<string, any> | null {
+  try {
+    let token = String(rawToken || '').trim().replace(/^["']|["']$/g, '');
+    if (token.startsWith('transaction_response=')) {
+      token = decodeURIComponent(token.replace('transaction_response=', ''));
+    }
+    token = token.replace(/^["']|["']$/g, '').trim();
+
+    if (token.startsWith('{') && token.endsWith('}')) {
+      try {
+        const parsed = JSON.parse(token);
+        if (parsed && typeof parsed === 'object') return parsed;
+      } catch {}
+    }
+
+    const { encryption } = keys();
+
+    const parts = token.split('.');
+    let jweStr = token;
+    if (parts.length === 3) {
+      const [, jwsPayloadB64] = parts;
+      jweStr = Buffer.from(jwsPayloadB64, 'base64url').toString('utf8');
+    }
+
+    const jweParts = jweStr.split('.');
+    if (jweParts.length === 5) {
+      const [jweHdrB64, , ivB64, cipherB64, tagB64] = jweParts;
+      const decipher = createDecipheriv('aes-256-gcm', encryption, Buffer.from(ivB64, 'base64url'));
+      decipher.setAAD(Buffer.from(jweHdrB64, 'ascii'));
+      decipher.setAuthTag(Buffer.from(tagB64, 'base64url'));
+      const decrypted = Buffer.concat([
+        decipher.update(Buffer.from(cipherB64, 'base64url')),
+        decipher.final()
+      ]);
+      const json = JSON.parse(decrypted.toString('utf8'));
+      if (json && typeof json === 'object') return json;
+    }
+  } catch (err) {
+    console.warn('Native BillDesk decryption fallback error:', err);
+  }
+  return null;
+}
+

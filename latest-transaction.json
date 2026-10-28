@@ -1,0 +1,7 @@
+{
+  "orderid": "BD_FAIL_TEST",
+  "auth_status": "0399",
+  "amount": "12499.00",
+  "currency": "356",
+  "transaction_error_desc": "Card declined by bank"
+}

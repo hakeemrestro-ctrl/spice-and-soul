@@ -99,5 +99,12 @@ export async function readBilldeskToken(req: Request): Promise<string> {
   }
 
   if (typeof token !== 'string' || !token) throw new Error('Missing token');
-  return token.trim().replace(/^["']|["']$/g, '');
+  let cleanToken = token.trim();
+  if (cleanToken.startsWith('transaction_response=')) {
+    cleanToken = decodeURIComponent(cleanToken.replace('transaction_response=', ''));
+  } else if (cleanToken.startsWith('msg=')) {
+    cleanToken = decodeURIComponent(cleanToken.replace('msg=', ''));
+  }
+  return cleanToken.trim().replace(/^["']|["']$/g, '');
 }
+

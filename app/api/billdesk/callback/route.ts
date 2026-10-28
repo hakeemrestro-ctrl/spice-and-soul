@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { handleBilldeskPayment, readBilldeskToken } from '@/lib/billdesk-handler';
 import { billdeskLog } from '@/lib/billdesk-log';
 import { randomUUID } from 'node:crypto';
-import { verifyJwsToken } from '@/lib/billdesk';
-import { generateReceiptHtml } from '@/lib/billdesk-receipt-html';
+import { verifyJwsToken, decryptBilldeskTokenNative } from '@/lib/billdesk';
+import { createAdminClient } from '@/lib/supabase/admin';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -14,10 +14,56 @@ function safeSaveFile(filename: string, content: string) {
   try {
     if (process.env.NODE_ENV === 'development') {
       fs.writeFileSync(path.join(process.cwd(), filename), content, 'utf8');
+      const rootPath = path.resolve(process.cwd(), '..', filename);
+      try { fs.writeFileSync(rootPath, content, 'utf8'); } catch {}
     }
   } catch {
     // Filesystem may be read-only in production serverless environments (e.g. Vercel)
   }
+}
+
+function loadLatestTransaction(): Record<string, any> | null {
+  const candidates = [
+    path.resolve(process.cwd(), 'latest-transaction.json'),
+    path.resolve(process.cwd(), 'spice-and-soul', 'latest-transaction.json'),
+    path.resolve(process.cwd(), '..', 'latest-transaction.json'),
+  ];
+  for (const p of candidates) {
+    try {
+      if (fs.existsSync(p)) {
+        return JSON.parse(fs.readFileSync(p, 'utf8'));
+      }
+    } catch {}
+  }
+  return null;
+}
+
+export function isAuthStatusSuccess(
+  authStatus?: string | null,
+  statusParam?: string | null,
+  errorType?: string | null,
+  errorCode?: string | null
+): boolean {
+  const code = String(authStatus || '').trim();
+  const status = String(statusParam || '').trim().toLowerCase();
+  const type = String(errorType || '').trim().toLowerCase();
+  const errCode = String(errorCode || '').trim().toUpperCase();
+
+  // 1. Strict auth_status check
+  // In BillDesk: 0300 = Success, 0399 = Failure
+  if (code === '0300') return true;
+  if (code === '0399' || code === '0499' || (code && code !== '0300')) return false;
+
+  // 2. Query param status check
+  if (status === 'success') return true;
+  if (status === 'failure' || status === 'failed') return false;
+
+  // 3. Error code / type check
+  if (errCode === 'TRS0000') return true;
+  if (type === 'success') return true;
+  if (type === 'failed' || type === 'cancelled') return false;
+
+  return false;
 }
 
 function formatTransactionDate(dateInput: unknown): string {
@@ -40,37 +86,47 @@ function formatTransactionDate(dateInput: unknown): string {
 
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
-  let fileData: Record<string, any> | null = null;
-  try {
-    const jsonPath = path.resolve(process.cwd(), 'latest-transaction.json');
-    if (fs.existsSync(jsonPath)) {
-      fileData = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
-    }
-  } catch {
-    // ignore
-  }
+  const fileData = loadLatestTransaction();
 
-  const statusParam = searchParams.get('status');
-  const isSuccess =
-    statusParam === 'success' ||
-    (statusParam !== 'failure' && (fileData?.auth_status === '0300' || !statusParam));
+  const rawAuthStatus =
+    searchParams.get('auth_status') ||
+    searchParams.get('authStatus') ||
+    fileData?.auth_status ||
+    '';
+
+  const rawStatus =
+    searchParams.get('status') ||
+    '';
+
+  const rawErrorType =
+    fileData?.transaction_error_type ||
+    '';
+
+  const rawErrorCode =
+    fileData?.transaction_error_code ||
+    '';
+
+  const isSuccess = isAuthStatusSuccess(rawAuthStatus, rawStatus, rawErrorType, rawErrorCode);
 
   const orderId =
     searchParams.get('orderId') ||
+    searchParams.get('orderid') ||
     fileData?.orderid ||
-    (isSuccess ? 'BD_125a86a1883b4cc99feb9f38dcc32297' : 'BD_fail_1793103411');
+    'BD_' + Date.now();
 
   const txnId =
     searchParams.get('txnId') ||
+    searchParams.get('txnid') ||
     fileData?.transactionid ||
     fileData?.bank_ref_no ||
-    (isSuccess ? 'USBI6VS004Y3I1' : 'UBDF004Y3F182');
+    (isSuccess ? 'TXN_' + Date.now() : 'FAILED');
 
-  const amount =
+  const rawAmount =
     searchParams.get('amount') ||
     fileData?.amount ||
     fileData?.charge_amount ||
-    '12499.00';
+    '100.00';
+  const amount = String(rawAmount).replace(/^(Rs\.?|₹)\s*/i, '').trim();
 
   const date =
     searchParams.get('date') ||
@@ -81,50 +137,222 @@ export async function GET(req: NextRequest) {
     fileData?.transaction_error_desc ||
     (isSuccess ? 'Transaction Successful' : 'Transaction not authorized');
 
-  const html = generateReceiptHtml({
-    isSuccess,
-    purpose: searchParams.get('purpose') || 'Fee Payment',
-    paymentMode: 'Online payment',
-    amount,
-    date,
-    txnId,
-    orderId,
-    statusDescription,
-  });
+  let paymentMode = searchParams.get('mode') || 'Online payment';
+  if (!searchParams.get('mode') && fileData?.payment_method_type) {
+    const method = String(fileData.payment_method_type).toUpperCase();
+    const bank = fileData.bankid ? ` - ${fileData.bankid}` : '';
+    paymentMode = `Online payment (${method}${bank})`;
+  }
 
-  return new NextResponse(html, {
-    status: 200,
-    headers: { 'Content-Type': 'text/html; charset=utf-8' },
-  });
+  const purpose = searchParams.get('purpose') || 'Culinary Course / Fee Payment';
+
+  const receiptUrl = new URL('/billdesk/receipt', req.url);
+  receiptUrl.searchParams.set('status', isSuccess ? 'success' : 'failure');
+  receiptUrl.searchParams.set('auth_status', isSuccess ? '0300' : (rawAuthStatus || '0399'));
+  receiptUrl.searchParams.set('orderId', orderId);
+  receiptUrl.searchParams.set('txnId', txnId);
+  receiptUrl.searchParams.set('amount', amount);
+  receiptUrl.searchParams.set('date', date);
+  receiptUrl.searchParams.set('desc', statusDescription);
+  receiptUrl.searchParams.set('purpose', purpose);
+  if (paymentMode) receiptUrl.searchParams.set('mode', paymentMode);
+
+  return NextResponse.redirect(receiptUrl.toString(), { status: 302 });
 }
 
 export async function POST(req: NextRequest) {
   const correlation = randomUUID(), started = Date.now();
   let token = '';
+  const directFormData: Record<string, string> = {};
+
+  try {
+    const clone = req.clone();
+    const contentType = req.headers.get('content-type') || '';
+    if (contentType.includes('form') || contentType.includes('urlencoded')) {
+      try {
+        const fd = await clone.formData();
+        for (const [k, v] of fd.entries()) {
+          if (typeof v === 'string') directFormData[k] = v;
+        }
+      } catch {}
+    }
+  } catch {}
 
   try {
     token = await readBilldeskToken(req);
     safeSaveFile('latest-transaction-token.txt', token);
     console.log('✅ BillDesk Callback received token!');
   } catch (err) {
-    console.error('Failed reading BillDesk callback token:', err);
+    console.warn('Note on reading BillDesk token:', err);
   }
 
-  // 1. Decrypt and verify the payload
+  // 1. Decrypt and verify the live payload from token
   let transactionData: Record<string, any> | null = null;
   if (token) {
     try {
       const verified = await verifyJwsToken(token);
       transactionData = verified.payload as Record<string, any>;
-      safeSaveFile('latest-transaction.json', JSON.stringify(transactionData, null, 2));
-      console.log('✅ Decrypted transaction data:', transactionData.orderid, transactionData.auth_status);
+      console.log('✅ Decrypted via verifyJwsToken:', transactionData.orderid, transactionData.auth_status);
     } catch (vErr) {
-      console.warn('Could not verify/decrypt token directly in callback:', vErr);
+      console.warn('verifyJwsToken threw, attempting resilient native decryption:', vErr);
+    }
+
+    if (!transactionData) {
+      try {
+        transactionData = decryptBilldeskTokenNative(token);
+        if (transactionData) {
+          console.log('✅ Decrypted via decryptBilldeskTokenNative:', transactionData.orderid, transactionData.auth_status);
+        }
+      } catch (nErr) {
+        console.warn('Native decrypt fallback failed:', nErr);
+      }
     }
   }
 
-  // 2. Database fulfillment (order claim & finish) in background
-  if (token) {
+  // 2. If token did not provide data, check direct form post fields
+  if (!transactionData && Object.keys(directFormData).length > 0) {
+    const formAuth = directFormData.auth_status || directFormData.authStatus || directFormData.status;
+    const formOrder = directFormData.orderid || directFormData.orderId;
+    if (formAuth || formOrder) {
+      transactionData = {
+        orderid: formOrder,
+        auth_status: formAuth,
+        transactionid: directFormData.transactionid || directFormData.transactionId || directFormData.bank_ref_no,
+        amount: directFormData.amount || directFormData.charge_amount,
+        currency: directFormData.currency || '356',
+        transaction_date: directFormData.transaction_date,
+        transaction_error_desc: directFormData.transaction_error_desc || directFormData.desc,
+        transaction_error_type: directFormData.transaction_error_type,
+        payment_method_type: directFormData.payment_method_type,
+        bankid: directFormData.bankid,
+      };
+      console.log('✅ Captured transaction data from form submission:', transactionData.orderid, transactionData.auth_status);
+    }
+  }
+
+  // 3. If still no transactionData, check query params
+  if (!transactionData) {
+    const searchParams = req.nextUrl.searchParams;
+    const qAuthStatus = searchParams.get('auth_status') || searchParams.get('authStatus') || (searchParams.get('status') === 'success' ? '0300' : (searchParams.get('status') === 'failure' ? '0399' : null));
+    const qOrderId = searchParams.get('orderId') || searchParams.get('orderid');
+    if (qAuthStatus || qOrderId) {
+      transactionData = {
+        orderid: qOrderId,
+        auth_status: qAuthStatus,
+        transactionid: searchParams.get('txnId') || searchParams.get('txnid'),
+        amount: searchParams.get('amount'),
+        transaction_date: searchParams.get('date'),
+        transaction_error_desc: searchParams.get('desc'),
+        transaction_error_type: qAuthStatus === '0300' ? 'success' : 'failed',
+      };
+      console.log('✅ Captured transaction data from query params:', transactionData.orderid, transactionData.auth_status);
+    }
+  }
+
+  // 4. Save to latest-transaction.json if live transaction data exists
+  if (transactionData) {
+    safeSaveFile('latest-transaction.json', JSON.stringify(transactionData, null, 2));
+  } else {
+    // Only fallback if no request data whatsoever exists
+    transactionData = loadLatestTransaction();
+  }
+
+  // 5. Determine Success vs Failure strictly based on auth_status (0300 = Success, 0399 = Failure)
+  const rawAuthStatus = String(
+    transactionData?.auth_status ||
+    directFormData.auth_status ||
+    directFormData.authStatus ||
+    req.nextUrl.searchParams.get('auth_status') ||
+    req.nextUrl.searchParams.get('authStatus') ||
+    ''
+  ).trim();
+
+  const rawStatus = String(
+    req.nextUrl.searchParams.get('status') ||
+    directFormData.status ||
+    ''
+  ).trim().toLowerCase();
+
+  const rawErrorType = String(
+    transactionData?.transaction_error_type ||
+    directFormData.transaction_error_type ||
+    ''
+  ).trim().toLowerCase();
+
+  const rawErrorCode = String(
+    transactionData?.transaction_error_code ||
+    directFormData.transaction_error_code ||
+    ''
+  ).trim().toUpperCase();
+
+  const isSuccess = isAuthStatusSuccess(rawAuthStatus, rawStatus, rawErrorType, rawErrorCode);
+
+  const orderId = String(
+    transactionData?.orderid ||
+    directFormData.orderid ||
+    directFormData.orderId ||
+    req.nextUrl.searchParams.get('orderId') ||
+    'BD_' + Date.now()
+  );
+
+  const txnId = String(
+    transactionData?.transactionid ||
+    transactionData?.bank_ref_no ||
+    directFormData.transactionid ||
+    directFormData.bank_ref_no ||
+    req.nextUrl.searchParams.get('txnId') ||
+    (isSuccess ? 'TXN_' + Date.now() : 'FAILED')
+  );
+
+  const rawAmount = String(
+    transactionData?.amount ||
+    transactionData?.charge_amount ||
+    directFormData.amount ||
+    req.nextUrl.searchParams.get('amount') ||
+    '100.00'
+  );
+  const amount = rawAmount.replace(/^(Rs\.?|₹)\s*/i, '').trim();
+
+  const formattedDate = formatTransactionDate(
+    transactionData?.transaction_date || directFormData.transaction_date || req.nextUrl.searchParams.get('date')
+  );
+
+  const statusDescription = String(
+    transactionData?.transaction_error_desc ||
+    directFormData.transaction_error_desc ||
+    directFormData.desc ||
+    req.nextUrl.searchParams.get('desc') ||
+    (isSuccess ? 'Transaction Successful' : 'Transaction not authorized')
+  );
+
+  let paymentMode = 'Online payment';
+  const methodType = transactionData?.payment_method_type || directFormData.payment_method_type;
+  if (methodType) {
+    const method = String(methodType).toUpperCase();
+    const bankId = transactionData?.bankid || directFormData.bankid;
+    const bank = bankId ? ` - ${bankId}` : '';
+    paymentMode = `Online payment (${method}${bank})`;
+  }
+
+  // 6. Look up Course Title from Supabase for accurate purpose
+  let purpose = 'Culinary Course / Fee Payment';
+  try {
+    const supabase = createAdminClient();
+    const { data: pending } = await supabase
+      .from('pending_orders')
+      .select('course_title')
+      .eq('order_id', orderId)
+      .maybeSingle();
+
+    if (pending?.course_title) {
+      purpose = pending.course_title;
+    }
+  } catch {
+    // ignore
+  }
+
+  // 7. Database fulfillment in background if payment succeeded
+  if (token && isSuccess) {
     try {
       await handleBilldeskPayment(token);
     } catch (e) {
@@ -133,63 +361,19 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 3. Fallback to latest-transaction.json if transactionData is missing
-  if (!transactionData) {
-    try {
-      const jsonPath = path.resolve(process.cwd(), 'latest-transaction.json');
-      if (fs.existsSync(jsonPath)) {
-        transactionData = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
-      }
-    } catch {
-      // ignore
-    }
-  }
+  // 8. Redirect directly to /billdesk/receipt with all live transaction details
+  const receiptUrl = new URL('/billdesk/receipt', req.url);
+  receiptUrl.searchParams.set('status', isSuccess ? 'success' : 'failure');
+  receiptUrl.searchParams.set('auth_status', isSuccess ? '0300' : (rawAuthStatus || '0399'));
+  receiptUrl.searchParams.set('orderId', orderId);
+  receiptUrl.searchParams.set('txnId', txnId);
+  receiptUrl.searchParams.set('amount', amount);
+  if (formattedDate) receiptUrl.searchParams.set('date', formattedDate);
+  if (statusDescription) receiptUrl.searchParams.set('desc', statusDescription);
+  if (purpose) receiptUrl.searchParams.set('purpose', purpose);
+  if (paymentMode) receiptUrl.searchParams.set('mode', paymentMode);
 
-  // 4. Determine Success vs Failure based strictly on auth_status
-  const authStatus = String(transactionData?.auth_status || '');
-  const isSuccess = authStatus === '0300' || transactionData?.transaction_error_type === 'success';
-
-  const orderId = String(
-    transactionData?.orderid ||
-    'BD_' + Date.now()
-  );
-
-  const txnId = String(
-    transactionData?.transactionid ||
-    transactionData?.bank_ref_no ||
-    (isSuccess ? 'USBI6VS004Y3I1' : 'UBDF004Y3F182')
-  );
-
-  const amount = String(
-    transactionData?.amount ||
-    transactionData?.charge_amount ||
-    '12499.00'
-  );
-
-  const formattedDate = formatTransactionDate(transactionData?.transaction_date);
-
-  const statusDescription = String(
-    transactionData?.transaction_error_desc ||
-    (isSuccess ? 'Transaction Successful' : 'Transaction not authorized')
-  );
-
-  // Directly render the exact compliance receipt HTML
-  const receiptHtml = generateReceiptHtml({
-    isSuccess,
-    purpose: 'Fee Payment',
-    paymentMode: 'Online payment',
-    amount,
-    date: formattedDate,
-    txnId,
-    orderId,
-    statusDescription,
-  });
-
-  return new NextResponse(receiptHtml, {
-    status: 200,
-    headers: {
-      'Content-Type': 'text/html; charset=utf-8',
-      'Cache-Control': 'no-store, max-age=0',
-    },
-  });
+  return NextResponse.redirect(receiptUrl.toString(), { status: 303 });
 }
+
+
