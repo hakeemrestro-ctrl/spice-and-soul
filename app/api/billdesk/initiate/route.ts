@@ -185,7 +185,7 @@ async function initiate(req: NextRequest) {
     billdeskLog('initiate', 'unknown', correlationId, Date.now() - started);
     return NextResponse.json({
       error: 'Checkout requires reconciliation; do not start a new attempt',
-      details: err?.message || String(err),
+      details: `[${process.env.NEXT_PUBLIC_SUPABASE_URL}] ${err?.message || String(err)}`,
     }, { status: 409 });
   }
 }
