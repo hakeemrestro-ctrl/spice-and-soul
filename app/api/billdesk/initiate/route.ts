@@ -139,12 +139,12 @@ async function initiate(req: NextRequest) {
         p_amount: binding.amount, p_fingerprint: fingerprint, p_order_id: orderId,
         p_email: email, p_name: name, p_metadata: metadata,
       });
-      if (error || !data) throw new Error('Checkout unavailable');
+      if (error || !data) throw new Error(`Checkout unavailable: ${error?.message || 'no data'}`);
       return data;
     },
     async finish(id, state, result) {
       const { error } = await supabase.rpc('billdesk_finish_checkout', { p_order_id: id, p_state: state, p_response: result });
-      if (error) throw new Error('Checkout persistence unavailable');
+      if (error) throw new Error(`Checkout persistence unavailable: ${error?.message}`);
     },
   }, async (orderId) => {
   // 4. Build BillDesk Request
@@ -181,9 +181,12 @@ async function initiate(req: NextRequest) {
   });
   billdeskLog('initiate', 'accepted', correlationId, Date.now() - started);
   return NextResponse.json(response, { headers: { 'Cache-Control': 'no-store' } });
-  } catch {
+  } catch (err: any) {
     billdeskLog('initiate', 'unknown', correlationId, Date.now() - started);
-    return NextResponse.json({ error: 'Checkout requires reconciliation; do not start a new attempt' }, { status: 409 });
+    return NextResponse.json({
+      error: 'Checkout requires reconciliation; do not start a new attempt',
+      details: err?.message || String(err),
+    }, { status: 409 });
   }
 }
 

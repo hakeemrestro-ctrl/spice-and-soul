@@ -346,7 +346,7 @@ export default async function BilldeskReceiptPage({
           </Link>
         ) : (
           <Link
-            href="/checkout?courseId=e91b8a1a-be8e-47da-ab7d-8b3c1e72b203"
+            href="/checkout?courseId=162fdd1f-f4e8-43fc-abef-1b54f3465e7f"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
