@@ -47,7 +47,7 @@ export function auditBilldeskConfig() {
   return { configured: true };
 }
 
-export const generateOrderId = () => `BD_${randomUUID().replaceAll('-', '')}`;
+export const generateOrderId = () => `BD${randomUUID().replaceAll('-', '')}`;
 export const generateTraceId = () => `BD${randomUUID().replaceAll('-', '')}`;
 
 function validateHeader(header: Record<string, unknown>, encrypted: boolean) {

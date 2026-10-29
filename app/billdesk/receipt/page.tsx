@@ -84,7 +84,7 @@ export default async function BilldeskReceiptPage({
     params.orderId ||
     params.orderid ||
     fileData?.orderid ||
-    'BD_' + Date.now();
+    'BD' + Date.now();
 
   const txnId =
     params.txnId ||

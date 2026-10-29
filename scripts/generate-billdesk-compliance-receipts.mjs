@@ -233,7 +233,7 @@ const successHtml = buildReceiptHtml({
     amount: '12499.00',
     date: '10/27/2026 18:03:10',
     transactionId: 'USBI6VS004Y3I1',
-    orderId: 'BD_125a86a1883b4cc99feb9f38dcc32297'
+    orderId: 'BD125a86a1883b4cc99feb9f38dcc32297'
   }
 });
 
@@ -247,7 +247,7 @@ const failureHtml = buildReceiptHtml({
     amount: '12499.00',
     date: '10/27/2026 18:05:22',
     transactionId: 'UBDF004Y3F182',
-    orderId: 'BD_fail_1793103411'
+    orderId: 'BDfail1793103411'
   }
 });
 

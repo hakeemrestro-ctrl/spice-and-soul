@@ -116,7 +116,7 @@ async function main() {
   const offsetMs = 5.5 * 60 * 60 * 1000;
   const istDate = new Date(now.getTime() + offsetMs);
   const orderDate = istDate.toISOString().slice(0, 19) + '+05:30';
-  const orderId = `BD_${Date.now()}`;
+  const orderId = `BD${Date.now()}`;
   const traceId1 = `BD${crypto.randomUUID().replaceAll('-', '')}`;
   const timestamp1 = istDate.toISOString().replace(/[-:T]/g, '').slice(0, 14);
 
@@ -157,9 +157,9 @@ async function main() {
   out.proof3_createOrderResponseDecoded = decodedResponse1;
 
   // -------------------------------------------------------------
-  // PROOF 5, 6: Retrieve Transaction API for BD_125a86a1883b4cc99feb9f38dcc32297
+  // PROOF 5, 6: Retrieve Transaction API for BD125a86a1883b4cc99feb9f38dcc32297
   // -------------------------------------------------------------
-  const retrieveOrderId = 'BD_125a86a1883b4cc99feb9f38dcc32297';
+  const retrieveOrderId = 'BD125a86a1883b4cc99feb9f38dcc32297';
   const retrieveJson = {
     mercid: MERCID,
     orderid: retrieveOrderId

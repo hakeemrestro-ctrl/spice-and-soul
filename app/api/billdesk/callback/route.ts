@@ -112,7 +112,7 @@ export async function GET(req: NextRequest) {
     searchParams.get('orderId') ||
     searchParams.get('orderid') ||
     fileData?.orderid ||
-    'BD_' + Date.now();
+    'BD' + Date.now();
 
   const txnId =
     searchParams.get('txnId') ||
@@ -288,7 +288,7 @@ export async function POST(req: NextRequest) {
     directFormData.orderid ||
     directFormData.orderId ||
     req.nextUrl.searchParams.get('orderId') ||
-    'BD_' + Date.now()
+    'BD' + Date.now()
   );
 
   const txnId = String(

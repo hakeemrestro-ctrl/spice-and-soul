@@ -1,7 +1,23 @@
 {
-  "orderid": "BD_FAIL_TEST",
-  "auth_status": "0399",
+  "mercid": "BDUATV2KRL",
+  "transaction_date": "2026-10-27T18:03:10+05:30",
+  "surcharge": "0.00",
+  "payment_method_type": "online",
   "amount": "12499.00",
+  "ru": "https://hakeemrestro.shop/api/billdesk/callback",
+  "orderid": "BD125a86a1883b4cc99feb9f38dcc32297",
+  "transaction_error_type": "success",
+  "discount": "0.00",
+  "payment_category": "01",
+  "bank_ref_no": "BILLDESK12",
+  "transactionid": "USBI6VS004Y3I1",
+  "txn_process_type": "nb",
+  "bankid": "SBI",
+  "itemcode": "DIRECT",
+  "transaction_error_code": "TRS0000",
   "currency": "356",
-  "transaction_error_desc": "Card declined by bank"
+  "auth_status": "0300",
+  "transaction_error_desc": "Transaction Successful",
+  "objectid": "transaction",
+  "charge_amount": "12499.00"
 }
