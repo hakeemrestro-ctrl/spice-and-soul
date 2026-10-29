@@ -2,23 +2,31 @@ import type { MetadataRoute } from "next";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ALL_POSTS } from "@/content/blog";
 
+export const dynamic = "force-dynamic";
+
 const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://hakeemrestro.shop";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const supabase = createAdminClient();
+  let courseUrls: MetadataRoute.Sitemap = [];
+  try {
+    const supabase = createAdminClient();
+    const { data: courses } = await supabase
+      .from("courses")
+      .select("slug, created_at")
+      .eq("published", true)
+      .order("created_at");
 
-  const { data: courses } = await supabase
-    .from("courses")
-    .select("slug, created_at")
-    .eq("published", true)
-    .order("created_at");
-
-  const courseUrls: MetadataRoute.Sitemap = (courses ?? []).map((c) => ({
-    url: `${BASE}/courses/${c.slug}`,
-    lastModified: c.created_at,
-    changeFrequency: "monthly",
-    priority: 0.8,
-  }));
+    if (courses && courses.length > 0) {
+      courseUrls = courses.map((c) => ({
+        url: `${BASE}/courses/${c.slug}`,
+        lastModified: c.created_at,
+        changeFrequency: "monthly",
+        priority: 0.8,
+      }));
+    }
+  } catch (err) {
+    console.warn("Could not load dynamic course URLs for sitemap:", err);
+  }
 
   const blogUrls: MetadataRoute.Sitemap = ALL_POSTS.map((p) => ({
     url: `${BASE}/blog/${p.slug}`,
