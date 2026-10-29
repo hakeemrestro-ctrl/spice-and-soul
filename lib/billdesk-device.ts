@@ -42,6 +42,5 @@ export function billdeskDevice(headers: Headers) {
   const rawIp = headers.get('x-vercel-forwarded-for') || headers.get('x-forwarded-for')?.split(',')[0].trim() || '103.211.54.10';
   const customerIp = (isIP(rawIp) === 4 && publicIPv4(rawIp)) ? rawIp : '103.211.54.10';
   const ua = headers.get('user-agent') || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
-  const accept = headers.get('accept') || 'application/json, text/plain, */*';
-  return { init_channel: 'internet', ip: customerIp, user_agent: ua.slice(0, 1024), accept_header: accept.slice(0, 2048) };
+  return { init_channel: 'internet', ip: customerIp, user_agent: ua.slice(0, 1024) };
 }

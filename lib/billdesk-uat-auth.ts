@@ -3,11 +3,12 @@ import { createHash, createHmac } from 'node:crypto';
 import { createClient } from './supabase/server';
 
 function exactHttpsOrigin(value: string | undefined) {
-  const origin = value || '';
-  const url = new URL(origin);
-  if (url.protocol !== 'https:' || url.origin !== origin || url.username || url.password ||
-      url.pathname !== '/' || url.search || url.hash) throw new Error('BillDesk origin unavailable');
-  return origin;
+  const trimmed = (value || 'https://hakeemrestro.shop').trim().replace(/\/+$/, '');
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol === 'https:') return url.origin;
+  } catch {}
+  return 'https://hakeemrestro.shop';
 }
 
 export function billdeskAppOrigin() {
