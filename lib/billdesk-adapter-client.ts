@@ -39,11 +39,12 @@ export async function adapterRequest(path: Operation, data: Envelope, transport:
       const text = (await readLimited(stream, MAX_BYTES)).toString('utf8');
       if (signal.aborted) throw new AdapterError('TIMEOUT', 504);
       if (!response.ok) {
+        console.error('Adapter non-ok response:', response.status, text);
         if (response.status === 503) {
           try { if (JSON.parse(text).error === 'UPSTREAM_DISABLED') throw new AdapterError('UPSTREAM_DISABLED', 503); }
           catch(e) { if (e instanceof AdapterError) throw e; }
         }
-        throw new AdapterError('ADAPTER_ERROR', 502);
+        throw new AdapterError(`ADAPTER_ERROR_${response.status}_${text.slice(0, 100)}`, 502);
       }
       if (response.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/jose') throw new AdapterError('INVALID_ADAPTER_RESPONSE', 502);
       return text;
