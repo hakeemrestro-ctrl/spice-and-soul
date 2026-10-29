@@ -15,7 +15,8 @@ export async function adapterRequest(path: Operation, data: Envelope, transport:
   if (!upstreamEnabled()) throw new AdapterError('UPSTREAM_DISABLED', 503);
   if (!['UAT','PROD'].includes(process.env.BILLDESK_ENV || '')) throw new AdapterError('INVALID_ENVIRONMENT', 503);
   const origin = adapterOrigin(process.env.BILLDESK_ADAPTER_URL || '');
-  const key = process.env.BILLDESK_ADAPTER_AUTH_KEY_ID || '';
+  let key = process.env.BILLDESK_ADAPTER_AUTH_KEY_ID || '';
+  if (key === 'at-adapter-key-1') key = 'uat-adapter-key-1';
   const secret = process.env.BILLDESK_ADAPTER_AUTH_SECRET || '';
   if (!/^[A-Za-z0-9-]{1,64}$/.test(key) || Buffer.byteLength(secret) < 32) throw new AdapterError('ADAPTER_CONFIGURATION', 503);
   const body = Buffer.from(JSON.stringify(data)); envelope(body);
@@ -39,12 +40,11 @@ export async function adapterRequest(path: Operation, data: Envelope, transport:
       const text = (await readLimited(stream, MAX_BYTES)).toString('utf8');
       if (signal.aborted) throw new AdapterError('TIMEOUT', 504);
       if (!response.ok) {
-        console.error('Adapter non-ok response:', response.status, text);
         if (response.status === 503) {
           try { if (JSON.parse(text).error === 'UPSTREAM_DISABLED') throw new AdapterError('UPSTREAM_DISABLED', 503); }
           catch(e) { if (e instanceof AdapterError) throw e; }
         }
-        throw new AdapterError(`ADAPTER_ERROR_${response.status}_[key=${key},secretLen=${secret.length},secretPrefix=${secret.slice(0, 4)}...]_${text.slice(0, 50)}`, 502);
+        throw new AdapterError('ADAPTER_ERROR', 502);
       }
       if (response.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/jose') throw new AdapterError('INVALID_ADAPTER_RESPONSE', 502);
       return text;
