@@ -8,9 +8,20 @@ export const dynamic = "force-dynamic";
 export default async function CheckoutPage({
   searchParams,
 }: {
-  searchParams: Promise<{ courseId?: string }>;
+  searchParams: Promise<{
+    courseId?: string;
+    courseld?: string;
+    courseid?: string;
+    course_id?: string;
+  }>;
 }) {
-  const { courseId } = await searchParams;
+  const params = await searchParams;
+  const courseId =
+    params.courseId ||
+    params.courseld ||
+    params.courseid ||
+    params.course_id;
+
   if (!courseId) notFound();
 
   const supabase = await createClient();
