@@ -5,11 +5,11 @@ import { randomUUID, createDecipheriv } from 'node:crypto';
 import { compactVerify, CompactSign, CompactEncrypt, compactDecrypt } from 'jose';
 
 export const BILLDESK_ENV = (process.env.BILLDESK_ENV || 'UAT').trim();
-export const BILLDESK_MERCID = (process.env.BILLDESK_MERCID || '').trim().replace(/^["']|["']$/g, '');
-export const BILLDESK_CLIENT_ID = (process.env.BILLDESK_CLIENT_ID || '').trim().replace(/^["']|["']$/g, '');
-export const BILLDESK_KEY_ID = (process.env.BILLDESK_KEY_ID || '').trim().replace(/^["']|["']$/g, '');
-const encryptionPassword = (process.env.BILLDESK_JWE_PASSWORD || '').trim().replace(/^["']|["']$/g, '');
-const signingPassword = (process.env.BILLDESK_JWS_PASSWORD || '').trim().replace(/^["']|["']$/g, '');
+export const BILLDESK_MERCID = ((BILLDESK_ENV === 'UAT' && (!process.env.BILLDESK_MERCID || process.env.BILLDESK_MERCID === 'BDUATV2KRL')) ? 'BDUATV2KRL' : (process.env.BILLDESK_MERCID || '')).trim().replace(/^["']|["']$/g, '');
+export const BILLDESK_CLIENT_ID = ((BILLDESK_ENV === 'UAT' && (!process.env.BILLDESK_CLIENT_ID || process.env.BILLDESK_CLIENT_ID === 'bduatv2krlsj')) ? 'bduatv2krlsj' : (process.env.BILLDESK_CLIENT_ID || '')).trim().replace(/^["']|["']$/g, '');
+export const BILLDESK_KEY_ID = ((BILLDESK_ENV === 'UAT' && (!process.env.BILLDESK_KEY_ID || process.env.BILLDESK_KEY_ID === '0SCWAdFuBgLv')) ? '0SCWAdFuBgLv' : (process.env.BILLDESK_KEY_ID || '')).trim().replace(/^["']|["']$/g, '');
+const encryptionPassword = ((BILLDESK_ENV === 'UAT' && (!process.env.BILLDESK_JWE_PASSWORD || process.env.BILLDESK_JWE_PASSWORD === 'TMtsOBn6bXkSXAxE0XBCCiVfUydaRwLf')) ? 'TMtsOBn6bXkSXAxE0XBCCiVfUydaRwLf' : (process.env.BILLDESK_JWE_PASSWORD || '')).trim().replace(/^["']|["']$/g, '');
+const signingPassword = ((BILLDESK_ENV === 'UAT' && (!process.env.BILLDESK_JWS_PASSWORD || process.env.BILLDESK_JWS_PASSWORD === 'vna166vLuTwyof7e3xIzHXkuALKLX70s')) ? 'vna166vLuTwyof7e3xIzHXkuALKLX70s' : (process.env.BILLDESK_JWS_PASSWORD || '')).trim().replace(/^["']|["']$/g, '');
 
 export function getBilldeskBaseUrl() {
   if (BILLDESK_ENV === 'UAT') return 'https://uat1.billdesk.com/u2/payments/ve1_2';
