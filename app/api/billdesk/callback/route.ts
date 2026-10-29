@@ -22,7 +22,21 @@ function safeSaveFile(filename: string, content: string) {
   }
 }
 
-function loadLatestTransaction(): Record<string, any> | null {
+interface BilldeskTransactionData {
+  orderid?: unknown;
+  auth_status?: unknown;
+  transactionid?: unknown;
+  amount?: unknown;
+  currency?: unknown;
+  transaction_date?: unknown;
+  transaction_error_desc?: unknown;
+  transaction_error_type?: unknown;
+  payment_method_type?: unknown;
+  bankid?: unknown;
+  [key: string]: unknown;
+}
+
+function loadLatestTransaction(): Record<string, unknown> | null {
   const candidates = [
     path.resolve(process.cwd(), 'latest-transaction.json'),
     path.resolve(process.cwd(), 'spice-and-soul', 'latest-transaction.json'),
@@ -88,38 +102,44 @@ export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
   const fileData = loadLatestTransaction();
 
-  const rawAuthStatus =
+  const rawAuthStatus = String(
     searchParams.get('auth_status') ||
     searchParams.get('authStatus') ||
     fileData?.auth_status ||
-    '';
+    ''
+  );
 
-  const rawStatus =
+  const rawStatus = String(
     searchParams.get('status') ||
-    '';
+    ''
+  );
 
-  const rawErrorType =
+  const rawErrorType = String(
     fileData?.transaction_error_type ||
-    '';
+    ''
+  );
 
-  const rawErrorCode =
+  const rawErrorCode = String(
     fileData?.transaction_error_code ||
-    '';
+    ''
+  );
 
   const isSuccess = isAuthStatusSuccess(rawAuthStatus, rawStatus, rawErrorType, rawErrorCode);
 
-  const orderId =
+  const orderId = String(
     searchParams.get('orderId') ||
     searchParams.get('orderid') ||
     fileData?.orderid ||
-    'BD' + Date.now();
+    'BD_PENDING'
+  );
 
-  const txnId =
+  const txnId = String(
     searchParams.get('txnId') ||
     searchParams.get('txnid') ||
     fileData?.transactionid ||
     fileData?.bank_ref_no ||
-    (isSuccess ? 'TXN_' + Date.now() : 'FAILED');
+    (isSuccess ? 'TXN_SUCCESS' : 'FAILED')
+  );
 
   const rawAmount =
     searchParams.get('amount') ||
@@ -128,14 +148,16 @@ export async function GET(req: NextRequest) {
     '100.00';
   const amount = String(rawAmount).replace(/^(Rs\.?|₹)\s*/i, '').trim();
 
-  const date =
+  const date = String(
     searchParams.get('date') ||
-    formatTransactionDate(fileData?.transaction_date);
+    formatTransactionDate(fileData?.transaction_date)
+  );
 
-  const statusDescription =
+  const statusDescription = String(
     searchParams.get('desc') ||
     fileData?.transaction_error_desc ||
-    (isSuccess ? 'Transaction Successful' : 'Transaction not authorized');
+    (isSuccess ? 'Transaction Successful' : 'Transaction not authorized')
+  );
 
   // Per BillDesk checklist 8.i: Payment mode must be 'Online payment' (Do not show as Card, Net Banking etc)
   const paymentMode = 'Online payment';
@@ -183,11 +205,11 @@ export async function POST(req: NextRequest) {
   }
 
   // 1. Decrypt and verify the live payload from token
-  let transactionData: Record<string, any> | null = null;
+  let transactionData: BilldeskTransactionData | null = null;
   if (token) {
     try {
       const verified = await verifyJwsToken(token);
-      transactionData = verified.payload as Record<string, any>;
+      transactionData = verified.payload as BilldeskTransactionData;
       console.log('✅ Decrypted via verifyJwsToken:', transactionData.orderid, transactionData.auth_status);
     } catch (vErr) {
       console.warn('verifyJwsToken threw, attempting resilient native decryption:', vErr);
@@ -195,7 +217,7 @@ export async function POST(req: NextRequest) {
 
     if (!transactionData) {
       try {
-        transactionData = decryptBilldeskTokenNative(token);
+        transactionData = decryptBilldeskTokenNative(token) as BilldeskTransactionData | null;
         if (transactionData) {
           console.log('✅ Decrypted via decryptBilldeskTokenNative:', transactionData.orderid, transactionData.auth_status);
         }

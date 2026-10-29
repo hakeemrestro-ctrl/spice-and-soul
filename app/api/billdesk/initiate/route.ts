@@ -64,11 +64,12 @@ async function initiate(req: NextRequest) {
   try {
     auditBilldeskConfig();
     hostedProfile();
-  } catch (err: any) {
-    console.error('BillDesk configuration error:', err?.message || err);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('BillDesk configuration error:', message);
     billdeskLog('initiate', 'rejected', correlationId, Date.now() - started);
     return NextResponse.json(
-      { error: "Payment gateway misconfigured. Contact support.", details: err?.message || 'Config audit failed' },
+      { error: "Payment gateway misconfigured. Contact support.", details: message || 'Config audit failed' },
       { status: 500 },
     );
   }
@@ -145,8 +146,8 @@ async function initiate(req: NextRequest) {
         if (!msg.includes('schema cache') && !msg.includes('Could not find the function')) {
           throw new Error(`Checkout unavailable: ${msg}`);
         }
-      } catch (err: any) {
-        const msg = err?.message || '';
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
         if (!msg.includes('schema cache') && !msg.includes('Could not find the function')) {
           throw err;
         }
@@ -212,12 +213,12 @@ async function initiate(req: NextRequest) {
   });
   billdeskLog('initiate', 'accepted', correlationId, Date.now() - started);
   return NextResponse.json(response, { headers: { 'Cache-Control': 'no-store' } });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('BillDesk initiate caught error:', err);
     billdeskLog('initiate', 'unknown', correlationId, Date.now() - started);
     return NextResponse.json({
       error: 'Checkout requires reconciliation; do not start a new attempt',
-      details: err?.message || String(err),
+      details: err instanceof Error ? err.message : String(err),
     }, { status: 409 });
   }
 }

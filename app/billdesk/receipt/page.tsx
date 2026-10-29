@@ -22,7 +22,7 @@ interface ReceiptSearchParams {
   mode?: string;
 }
 
-function loadLatestTransaction(): Record<string, any> | null {
+function loadLatestTransaction(): Record<string, unknown> | null {
   const candidates = [
     path.resolve(process.cwd(), 'latest-transaction.json'),
     path.resolve(process.cwd(), 'spice-and-soul', 'latest-transaction.json'),
@@ -83,15 +83,15 @@ export default async function BilldeskReceiptPage({
   const orderId =
     params.orderId ||
     params.orderid ||
-    fileData?.orderid ||
-    'BD' + Date.now();
+    (fileData?.orderid as string | undefined) ||
+    'BD_PENDING';
 
   const txnId =
     params.txnId ||
     params.txnid ||
-    fileData?.transactionid ||
-    fileData?.bank_ref_no ||
-    (isSuccess ? 'TXN_' + Date.now() : 'FAILED');
+    (fileData?.transactionid as string | undefined) ||
+    (fileData?.bank_ref_no as string | undefined) ||
+    (isSuccess ? 'TXN_SUCCESS' : 'FAILED');
 
   const rawAmount =
     params.amount ||
@@ -104,7 +104,7 @@ export default async function BilldeskReceiptPage({
   if (!dateStr) {
     if (fileData?.transaction_date) {
       try {
-        const d = new Date(fileData.transaction_date);
+        const d = new Date(fileData.transaction_date as string | number);
         const pad = (n: number) => String(n).padStart(2, '0');
         dateStr = `${pad(d.getMonth() + 1)}/${pad(d.getDate())}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
       } catch {
@@ -123,7 +123,7 @@ export default async function BilldeskReceiptPage({
   const purpose = params.purpose || 'Culinary Course / Fee Payment';
   const statusDesc =
     params.desc ||
-    fileData?.transaction_error_desc ||
+    (fileData?.transaction_error_desc as string | undefined) ||
     (isSuccess ? 'Transaction Successful' : 'Transaction not authorized');
 
   return (

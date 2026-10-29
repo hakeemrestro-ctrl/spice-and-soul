@@ -23,9 +23,10 @@ export async function runBilldeskCheckout(binding: CheckoutBinding, store: Check
     const response = await dispatch(reservation.orderId);
     await store.finish(reservation.orderId, 'responded', response);
     return response;
-  } catch (err: any) {
+  } catch (err: unknown) {
     // Failure to save unknown leaves started; neither state allows another dispatch.
     await store.finish(reservation.orderId, 'unknown', null).catch(() => {});
-    throw new Error(`CHECKOUT_REQUIRES_RECONCILIATION: ${err?.message || err}`);
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`CHECKOUT_REQUIRES_RECONCILIATION: ${msg}`);
   }
 }

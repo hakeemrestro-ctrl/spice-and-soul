@@ -95,7 +95,7 @@ export async function getBillDeskTransactionStatus(orderId: string) {
   return (await verifyJwsToken(response)).payload;
 }
 
-export function decryptBilldeskTokenNative(rawToken: string): Record<string, any> | null {
+export function decryptBilldeskTokenNative(rawToken: string): Record<string, unknown> | null {
   try {
     let token = String(rawToken || '').trim().replace(/^["']|["']$/g, '');
     if (token.startsWith('transaction_response=')) {
