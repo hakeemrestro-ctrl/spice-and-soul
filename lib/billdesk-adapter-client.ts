@@ -44,7 +44,7 @@ export async function adapterRequest(path: Operation, data: Envelope, transport:
           try { if (JSON.parse(text).error === 'UPSTREAM_DISABLED') throw new AdapterError('UPSTREAM_DISABLED', 503); }
           catch(e) { if (e instanceof AdapterError) throw e; }
         }
-        throw new AdapterError(`ADAPTER_ERROR_${response.status}_${text.slice(0, 100)}`, 502);
+        throw new AdapterError(`ADAPTER_ERROR_${response.status}_[key=${key},secretLen=${secret.length},secretPrefix=${secret.slice(0, 4)}...]_${text.slice(0, 50)}`, 502);
       }
       if (response.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/jose') throw new AdapterError('INVALID_ADAPTER_RESPONSE', 502);
       return text;
