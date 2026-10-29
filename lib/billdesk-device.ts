@@ -39,7 +39,9 @@ export function billdeskDevice(headers: Headers) {
   }
   const macPolicy = process.env.BILLDESK_DEVICE_MAC_POLICY || 'omit-confirmed';
   if (macPolicy !== 'omit-confirmed') throw new Error('BillDesk MAC requirement needs confirmation');
-  const ip = header(headers, 'x-vercel-forwarded-for', 45) || header(headers, 'x-forwarded-for', 45)?.split(',')[0].trim() || '103.211.54.10';
-  const customerIp = publicCustomerIP(ip) ? ip : '103.211.54.10';
-  return { init_channel: 'internet', ip: customerIp, user_agent: header(headers, 'user-agent', 1024), accept_header: header(headers, 'accept', 2048) };
+  const rawIp = headers.get('x-vercel-forwarded-for') || headers.get('x-forwarded-for')?.split(',')[0].trim() || '103.211.54.10';
+  const customerIp = (isIP(rawIp) === 4 && publicIPv4(rawIp)) ? rawIp : '103.211.54.10';
+  const ua = headers.get('user-agent') || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+  const accept = headers.get('accept') || 'application/json, text/plain, */*';
+  return { init_channel: 'internet', ip: customerIp, user_agent: ua.slice(0, 1024), accept_header: accept.slice(0, 2048) };
 }
