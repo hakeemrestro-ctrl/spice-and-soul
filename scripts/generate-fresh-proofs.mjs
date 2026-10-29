@@ -123,8 +123,9 @@ const createOrderResponseJson = {
 const createOrderResponseEncoded = createResponseJoseToken(createOrderResponseJson);
 
 const retrieveJson = {
+  orderid: 'BD125a86a1883b4cc99feb9f38dcc32297',
   mercid: MERCID,
-  orderid: 'BD125a86a1883b4cc99feb9f38dcc32297'
+  refund_details: 'true'
 };
 
 const retrieveTokens = createJoseTokens(retrieveJson);
@@ -150,7 +151,8 @@ const retrieveResponseDecoded = {
   transaction_error_desc: 'Transaction Successful',
   transaction_error_type: 'success',
   payment_method_type: 'online',
-  payment_category: '01'
+  payment_category: '01',
+  refund_details: []
 };
 
 const retrieveResponseEncoded = createResponseJoseToken(retrieveResponseDecoded);

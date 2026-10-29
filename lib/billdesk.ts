@@ -88,7 +88,7 @@ export async function verifyJwsToken(token: string) {
 export async function getBillDeskTransactionStatus(orderId: string) {
   if (!upstreamEnabled()) throw new Error('UPSTREAM_DISABLED');
   auditBilldeskConfig();
-  const token = await createJwsToken({ mercid: BILLDESK_MERCID, orderid: orderId, refund_details: true });
+  const token = await createJwsToken({ mercid: BILLDESK_MERCID, orderid: orderId, refund_details: "true" });
   const response = await adapterRequest(operationForEnvironment('transactions/get'), {
     operationId: newOperationId(), traceId: generateTraceId(), timestamp: billdeskTimestamp(), jose: token,
   });
